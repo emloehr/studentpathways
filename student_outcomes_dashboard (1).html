@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Office of Student Pathways Outcomes Data</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap');
+
+  :root {
+    --bg: #f4f6fb;
+    --surface: #ffffff;
+    --surface2: #eef1f8;
+    --border: #dde2ef;
+    --text: #1a2035;
+    --text-muted: #6b7794;
+    --accent: #1e3a8a;
+    --accent3: #16a34a;
+    --accent4: #dc2626;
+    --radius: 12px;
+    --shadow: 0 2px 16px rgba(30,40,80,0.08);
+  }
+
+  html { font-size: 17.5px; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  header {
+    background: var(--accent);
+    border-bottom: 1px solid rgba(255,255,255,0.10);
+    padding: 18px 36px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 12px rgba(15,23,42,0.15);
+    color: #fff;
+  }
+  .header-icon {
+    width: 36px; height: 36px;
+    background: rgba(255,255,255,0.18);
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .header-icon svg { width: 20px; height: 20px; fill: #fff; }
+  .header-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.4rem;
+    color: #fff;
+    letter-spacing: -0.02em;
+  }
+  .header-sub {
+    font-size: 0.77rem;
+    color: rgba(255,255,255,0.78);
+    margin-top: 2px;
+  }
+
+  /* CONTROLS */
+  .controls-bar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 36px;
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .control-group label {
+    font-size: 0.70rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--text-muted);
+  }
+
+  /* MULTI-SELECT DROPDOWN */
+  .multi-select-wrapper {
+    position: relative;
+    min-width: 240px;
+  }
+  .multi-select-trigger {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem;
+    padding: 8px 34px 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 38px;
+    user-select: none;
+    flex-wrap: wrap;
+  }
+  .multi-select-trigger:focus,
+  .multi-select-trigger.open {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(30,58,138,0.18);
+  }
+  .multi-select-trigger::after {
+    content: "";
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 12px; height: 8px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7794' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    pointer-events: none;
+    flex-shrink: 0;
+  }
+  .tag-chip {
+    background: #dbeafe;
+    color: #1d4ed8;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 0.74rem;
+    font-weight: 500;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .tag-chip .remove {
+    cursor: pointer;
+    font-size: 0.85rem;
+    line-height: 1;
+    opacity: 0.7;
+  }
+  .tag-chip .remove:hover { opacity: 1; }
+  .placeholder-text {
+    color: var(--text-muted);
+    font-size: 0.88rem;
+  }
+  .dropdown-panel {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    min-width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 8px 32px rgba(30,40,80,0.14);
+    z-index: 200;
+    overflow: hidden;
+    display: none;
+  }
+  .dropdown-panel.open { display: block; }
+  .dropdown-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 14px;
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: background 0.12s;
+    color: var(--text);
+  }
+  .dropdown-option:hover { background: var(--surface2); }
+  .dropdown-option input[type="checkbox"] {
+    width: 15px; height: 15px;
+    accent-color: var(--accent);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .dropdown-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 2px 0;
+  }
+
+  /* SINGLE SELECT */
+  .control-group select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem;
+    padding: 8px 34px 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s;
+    appearance: none;
+    min-width: 200px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7794' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+  }
+  .control-group select:focus { border-color: var(--accent); }
+
+  .reset-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.84rem;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    align-self: flex-end;
+    margin-bottom: 0;
+    height: 38px;
+  }
+  .reset-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* FILTERS PANEL */
+  .filters-panel {
+    background: var(--surface);
+    margin: 18px 14px 0;
+    padding: 14px 20px 16px;
+    border-radius: var(--radius);
+    border: 2px solid var(--accent);
+    box-shadow: var(--shadow);
+  }
+  .filters-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .filters-title {
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .controls-bar.controls-bar { /* override the legacy bar styling */
+    background: transparent;
+    border-bottom: none;
+    padding: 0;
+    gap: 32px;
+  }
+
+  /* CHIP FILTERS */
+  .chip-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 10px;
+    background: var(--surface2);
+    border: 2px solid var(--accent);
+    border-radius: 10px;
+  }
+  .chip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 11px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem;
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s, color 0.12s, box-shadow 0.12s;
+    user-select: none;
+  }
+  .chip:hover { border-color: var(--accent); color: var(--accent); }
+  .chip.chip-active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    box-shadow: 0 1px 3px rgba(30,58,138,0.30);
+  }
+  .chip.chip-active:hover { color: #fff; }
+
+  /* Make each control-group act like a stacked block; controls-bar wraps them */
+  .control-group { gap: 8px; min-width: 280px; flex: 1 1 320px; }
+
+  /* LINE SWATCH (used in legend pills and data tables) */
+  .line-swatch {
+    width: 22px;
+    height: 10px;
+    flex-shrink: 0;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+
+  /* CHART DATA TABLE */
+  .chart-data-table-wrap {
+    margin-top: 14px;
+    overflow-x: auto;
+    border-top: 1px solid var(--border);
+    padding-top: 10px;
+  }
+  .chart-data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.74rem;
+    table-layout: auto;
+  }
+  .chart-data-table th, .chart-data-table td {
+    padding: 3px 5px;
+    text-align: right;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .chart-data-table thead th {
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-size: 0.66rem;
+    letter-spacing: 0.06em;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .chart-data-table tbody tr + tr td { border-top: 1px solid #eef1f8; }
+  .chart-data-table th:first-child,
+  .chart-data-table td:first-child {
+    text-align: left;
+    font-weight: 500;
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.25;
+    max-width: 220px;
+  }
+  .chart-data-table .line-swatch {
+    flex-shrink: 0;
+  }
+  .chart-data-table td.muted { color: var(--text-muted); font-style: italic; }
+
+  /* CHART NOTE */
+  .chart-note {
+    margin-top: 10px;
+    font-size: 0.74rem;
+    color: var(--text-muted);
+    font-style: italic;
+    line-height: 1.45;
+  }
+
+  /* SUMMARY STATS */
+  .summary-bar {
+    display: flex;
+    gap: 14px;
+    padding: 18px 14px;
+    flex-wrap: wrap;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 2px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 14px 20px;
+    flex: 1;
+    min-width: 150px;
+    max-width: 210px;
+    box-shadow: var(--shadow);
+    transition: border-color 0.2s;
+  }
+  .stat-card:hover { border-color: var(--accent); }
+  .stat-label {
+    font-size: 0.70rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--text-muted);
+    margin-bottom: 7px;
+  }
+  .stat-value {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.9rem;
+    line-height: 1;
+    color: var(--text);
+  }
+  .stat-unit {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem;
+    color: var(--text-muted);
+    margin-left: 2px;
+  }
+  .stat-trend { font-size: 0.76rem; margin-top: 6px; }
+  .trend-up { color: var(--accent3); }
+  .trend-down { color: var(--accent4); }
+  .trend-neutral { color: var(--text-muted); }
+
+  /* CHARTS GRID */
+  .charts-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    padding: 0 14px 24px;
+  }
+  .chart-card {
+    background: var(--surface);
+    border: 2px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 16px 14px;
+    box-shadow: var(--shadow);
+    transition: box-shadow 0.2s;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .chart-card:hover { box-shadow: 0 4px 24px rgba(30,40,80,0.12); }
+  .chart-card.wide { grid-column: span 2; }
+  .chart-header { margin-bottom: 16px; }
+  .chart-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.05rem;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+  .chart-subtitle { font-size: 0.73rem; color: var(--text-muted); margin-top: 2px; }
+  .chart-wrap { max-width: 100%;  position: relative; height: 255px; }
+
+  /* LEGEND PILLS */
+  .legend-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 13px;
+  }
+  .legend-pill {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 3px 9px;
+    font-size: 0.73rem;
+    color: var(--text-muted);
+  }
+  .legend-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* EMPTY STATE */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    grid-column: span 2;
+  }
+
+  /* FOOTER */
+  footer {
+    text-align: center;
+    padding: 18px 14px;
+    color: var(--text-muted);
+    font-size: 0.73rem;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  @media (max-width: 900px) {
+    .charts-grid { grid-template-columns: 1fr; padding: 0 16px 24px; }
+    .chart-card.wide { grid-column: span 1; }
+    .controls-bar, .summary-bar { padding: 14px 16px; }
+    header { padding: 14px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-icon">
+    <svg viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
+  </div>
+  <div>
+    <div class="header-title">Office of Student Pathways Outcomes Data</div>
+    <div class="header-sub">Multi-year trends across programs and demographic groups</div>
+  </div>
+</header>
+
+<section class="filters-panel">
+  <div class="filters-header">
+    <div class="filters-title">Filters</div>
+    <button class="reset-btn" onclick="resetFilters()">Reset all</button>
+  </div>
+  <div class="controls-bar">
+    <div class="control-group">
+      <label>Program</label>
+      <div class="chip-group" id="programChips"></div>
+    </div>
+
+    <div class="control-group">
+      <label>Demographic Group</label>
+      <div class="chip-group" id="demoChips"></div>
+    </div>
+
+  </div>
+</section>
+
+<div class="summary-bar" id="summaryBar"></div>
+<div class="charts-grid" id="chartsGrid"></div>
+<footer id="footerNote"></footer>
+
+<script>
+const RAW_DATA = [{"p": "Citywide", "dg": "All Students", "cat": "All Students", "y": "2018-19", "n": "326894", "att": "88", "abs": "35", "gpa": "69", "grad": "80", "otg": "52"}, {"p": "Citywide", "dg": "ELL status", "cat": "ELL", "y": "2018-19", "n": "40211", "att": "84", "abs": "43", "gpa": "62", "grad": "44", "otg": "19"}, {"p": "Citywide", "dg": "ELL status", "cat": "Not ELL", "y": "2018-19", "n": "286683", "att": "88", "abs": "33", "gpa": "70", "grad": "83", "otg": "57"}, {"p": "Citywide", "dg": "Ethnicity", "cat": "Asian", "y": "2018-19", "n": "52901", "att": "93", "abs": "18", "gpa": "82", "grad": "89", "otg": "73"}, {"p": "Citywide", "dg": "Ethnicity", "cat": "Black", "y": "2018-19", "n": "89471", "att": "86", "abs": "41", "gpa": "61", "grad": "78", "otg": "40"}, {"p": "Citywide", "dg": "Ethnicity", "cat": "Hispanic", "y": "2018-19", "n": "132166", "att": "85", "abs": "42", "gpa": "65", "grad": "75", "otg": "43"}, {"p": "Citywide", "dg": "Ethnicity", "cat": "White", "y": "2018-19", "n": "42900", "att": "91", "abs": "24", "gpa": "79", "grad": "89", "otg": "68"}, {"p": "Citywide", "dg": "Gender", "cat": "Female", "y": "2018-19", "n": "157209", "att": "88", "abs": "34", "gpa": "72", "grad": "84", "otg": "56"}, {"p": "Citywide", "dg": "Gender", "cat": "Male", "y": "2018-19", "n": "169683", "att": "87", "abs": "36", "gpa": "66", "grad": "76", "otg": "47"}, {"p": "Citywide", "dg": "Poverty status", "cat": "Not Poverty", "y": "2018-19", "n": "88156", "att": "91", "abs": "24", "gpa": "74", "grad": "85", "otg": "64"}, {"p": "Citywide", "dg": "Poverty status", "cat": "Poverty", "y": "2018-19", "n": "238738", "att": "87", "abs": "38", "gpa": "67", "grad": "79", "otg": "47"}, {"p": "Citywide", "dg": "STH status", "cat": "Not STH", "y": "2018-19", "n": "293049", "att": "88", "abs": "33", "gpa": "69", "grad": "82", "otg": "54"}, {"p": "Citywide", "dg": "STH status", "cat": "STH", "y": "2018-19", "n": "33845", "att": "81", "abs": "51", "gpa": "64", "grad": "64", "otg": "32"}, {"p": "Citywide", "dg": "SWD status", "cat": "Not SWD", "y": "2018-19", "n": "262356", "att": "89", "abs": "31", "gpa": "72", "grad": "84", "otg": "57"}, {"p": "Citywide", "dg": "SWD status", "cat": "SWD", "y": "2018-19", "n": "64538", "att": "82", "abs": "49", "gpa": "56", "grad": "63", "otg": "30"}, {"p": "Citywide", "dg": "All Students", "cat": "All Students", "y": "2019-20", "n": "325657", "att": "88", "abs": "33", "gpa": "70", "grad": "82", "otg": "11"}, {"p": "Citywide", "dg": "ELL status", "cat": "ELL", "y": "2019-20", "n": "38109", "att": "84", "abs": "43", "gpa": "63", "grad": "49", "otg": "5"}, {"p": "Citywide", "dg": "ELL status", "cat": "Not ELL", "y": "2019-20", "n": "287548", "att": "89", "abs": "31", "gpa": "71", "grad": "85", "otg": "12"}, {"p": "Citywide", "dg": "Ethnicity", "cat": "Asian", "y": "2019-20", "n": "53031", "att": "94", "abs": "17", "gpa": "83", "grad": "91", "otg": "13"}, {"p": "Citywide", "dg": "Ethnicity", "cat": "Black", "y": "2019-20", "n": "87398", "att": "86", "abs": "39", "gpa": "62", "grad": "80", "otg": "7"}, {"p": "Citywide", "dg": "Ethnicity", "cat": "Hispanic", "y": "2019-20", "n": "133255", "att": "86", "abs": "39", "gpa": "67", "grad": "77", "otg": "9"}, {"p": "Citywide", "dg": "Ethnicity", "cat": "White", "y": "2019-20", "n": "42844", "att": "92", "abs": "23", "gpa": "81", "grad": "91", "otg": "20"}, {"p": "Citywide", "dg": "Gender", "cat": "Female", "y": "2019-20", "n": "156528", "att": "89", "abs": "32", "gpa": "73", "grad": "87", "otg": "12"}, {"p": "Citywide", "dg": "Gender", "cat": "Male", "y": "2019-20", "n": "169129", "att": "88", "abs": "33", "gpa": "67", "grad": "78", "otg": "10"}, {"p": "Citywide", "dg": "Poverty status", "cat": "Not Poverty", "y": "2019-20", "n": "83961", "att": "92", "abs": "21", "gpa": "76", "grad": "88", "otg": "16"}, {"p": "Citywide", "dg": "Poverty status", "cat": "Poverty", "y": "2019-20", "n": "241696", "att": "87", "abs": "36", "gpa": "68", "grad": "80", "otg": "9"}, {"p": "Citywide", "dg": "STH status", "cat": "Not STH", "y": "2019-20", "n": "292233", "att": "89", "abs": "31", "gpa": "71", "grad": "84", "otg": "12"}, {"p": "Citywide", "dg": "STH status", "cat": "STH", "y": "2019-20", "n": "33424", "att": "82", "abs": "49", "gpa": "65", "grad": "67", "otg": "6"}, {"p": "Citywide", "dg": "SWD status", "cat": "Not SWD", "y": "2019-20", "n": "260459", "att": "90", "abs": "29", "gpa": "73", "grad": "85", "otg": "12"}, {"p": "Citywide", "dg": "SWD status", "cat": "SWD", "y": "2019-20", "n": "65198", "att": "83", "abs": "47", "gpa": "58", "grad": "66", "otg": "7"}, {"p": "Citywide", "dg": "All Students", "cat": "All Students", "y": "2020-21", "n": "324465", "att": "85", "abs": "37", "gpa": "69", "grad": "85", "otg": "59"}, {"p": "Citywide", "dg": "ELL status", "cat": "ELL", "y": "2020-21", "n": "39615", "att": "79", "abs": "50", "gpa": "62", "grad": "64", "otg": "38"}, {"p": "Citywide", "dg": "ELL status", "cat": "Not ELL", "y": "2020-21", "n": "284850", "att": "86", "abs": "35", "gpa": "70", "grad": "87", "otg": "61"}, {"p": "Citywide", "dg": "Ethnicity", "cat": "Asian", "y": "2020-21", "n": "52999", "att": "92", "abs": "18", "gpa": "84", "grad": "92", "otg": "74"}, {"p": "Citywide", "dg": "Ethnicity", "cat": "Black", "y": "2020-21", "n": "85727", "att": "82", "abs": "45", "gpa": "60", "grad": "83", "otg": "50"}, {"p": "Citywide", "dg": "Ethnicity", "cat": "Hispanic", "y": "2020-21", "n": "133644", "att": "82", "abs": "45", "gpa": "65", "grad": "81", "otg": "52"}, {"p": "Citywide", "dg": "Ethnicity", "cat": "White", "y": "2020-21", "n": "42035", "att": "90", "abs": "26", "gpa": "81", "grad": "92", "otg": "71"}, {"p": "Citywide", "dg": "Gender", "cat": "Female", "y": "2020-21", "n": "155396", "att": "87", "abs": "33", "gpa": "73", "grad": "89", "otg": "63"}, {"p": "Citywide", "dg": "Gender", "cat": "Male", "y": "2020-21", "n": "169069", "att": "83", "abs": "41", "gpa": "66", "grad": "81", "otg": "55"}, {"p": "Citywide", "dg": "Poverty status", "cat": "Not Poverty", "y": "2020-21", "n": "82664", "att": "90", "abs": "26", "gpa": "76", "grad": "90", "otg": "68"}, {"p": "Citywide", "dg": "Poverty status", "cat": "Poverty", "y": "2020-21", "n": "241801", "att": "84", "abs": "41", "gpa": "67", "grad": "84", "otg": "55"}, {"p": "Citywide", "dg": "STH status", "cat": "Not STH", "y": "2020-21", "n": "292460", "att": "86", "abs": "36", "gpa": "70", "grad": "86", "otg": "60"}, {"p": "Citywide", "dg": "STH status", "cat": "STH", "y": "2020-21", "n": "32005", "att": "78", "abs": "52", "gpa": "63", "grad": "74", "otg": "43"}, {"p": "Citywide", "dg": "SWD status", "cat": "Not SWD", "y": "2020-21", "n": "257065", "att": "87", "abs": "33", "gpa": "73", "grad": "88", "otg": "62"}, {"p": "Citywide", "dg": "SWD status", "cat": "SWD", "y": "2020-21", "n": "67400", "att": "79", "abs": "51", "gpa": "57", "grad": "71", "otg": "42"}, {"p": "Citywide", "dg": "All Students", "cat": "All Students", "y": "2021-22", "n": "314835", "att": "85", "abs": "46", "gpa": "70", "grad": "87", "otg": "67"}, {"p": "Citywide", "dg": "ELL status", "cat": "ELL", "y": "2021-22", "n": "39506", "att": "82", "abs": "52", "gpa": "65", "grad": "71", "otg": "45"}, {"p": "Citywide", "dg": "ELL status", "cat": "Not ELL", "y": "2021-22", "n": "275329", "att": "85", "abs": "45", "gpa": "70", "grad": "89", "otg": "71"}, {"p": "Citywide", "dg": "Ethnicity", "cat": "Asian", "y": "2021-22", "n": "51862", "att": "91", "abs": "26", "gpa": "85", "grad": "93", "otg": "83"}, {"p": "Citywide", "dg": "Ethnicity", "cat": "Black", "y": "2021-22", "n": "81817", "att": "82", "abs": "54", "gpa": "60", "grad": "85", "otg": "58"}, {"p": "Citywide", "dg": "Ethnicity", "cat": "Hispanic", "y": "2021-22", "n": "131525", "att": "82", "abs": "53", "gpa": "66", "grad": "83", "otg": "61"}, {"p": "Citywide", "dg": "Ethnicity", "cat": "White", "y": "2021-22", "n": "39645", "att": "88", "abs": "38", "gpa": "81", "grad": "93", "otg": "79"}, {"p": "Citywide", "dg": "Gender", "cat": "Female", "y": "2021-22", "n": "150979", "att": "85", "abs": "46", "gpa": "73", "grad": "90", "otg": "71"}, {"p": "Citywide", "dg": "Gender", "cat": "Male", "y": "2021-22", "n": "163856", "att": "84", "abs": "46", "gpa": "67", "grad": "83", "otg": "64"}, {"p": "Citywide", "dg": "Poverty status", "cat": "Not Poverty", "y": "2021-22", "n": "80747", "att": "89", "abs": "35", "gpa": "77", "grad": "91", "otg": "77"}, {"p": "Citywide", "dg": "Poverty status", "cat": "Poverty", "y": "2021-22", "n": "234088", "att": "83", "abs": "50", "gpa": "67", "grad": "85", "otg": "64"}, {"p": "Citywide", "dg": "STH status", "cat": "Not STH", "y": "2021-22", "n": "284133", "att": "85", "abs": "45", "gpa": "70", "grad": "88", "otg": "69"}, {"p": "Citywide", "dg": "STH status", "cat": "STH", "y": "2021-22", "n": "30702", "att": "78", "abs": "60", "gpa": "64", "grad": "75", "otg": "52"}, {"p": "Citywide", "dg": "SWD status", "cat": "Not SWD", "y": "2021-22", "n": "248023", "att": "86", "abs": "42", "gpa": "73", "grad": "89", "otg": "71"}, {"p": "Citywide", "dg": "SWD status", "cat": "SWD", "y": "2021-22", "n": "66812", "att": "79", "abs": "61", "gpa": "57", "grad": "75", "otg": "50"}, {"p": "Citywide", "dg": "All Students", "cat": "All Students", "y": "2022-23", "n": "311523", "att": "87", "abs": "39", "gpa": "69", "grad": "86", "otg": "65"}, {"p": "Citywide", "dg": "ELL status", "cat": "ELL", "y": "2022-23", "n": "38697", "att": "84", "abs": "47", "gpa": "63", "grad": "66", "otg": "36"}, {"p": "Citywide", "dg": "ELL status", "cat": "Not ELL", "y": "2022-23", "n": "272826", "att": "87", "abs": "38", "gpa": "70", "grad": "89", "otg": "69"}, {"p": "Citywide", "dg": "Ethnicity", "cat": "Asian", "y": "2022-23", "n": "49929", "att": "93", "abs": "21", "gpa": "84", "grad": "93", "otg": "83"}, {"p": "Citywide", "dg": "Ethnicity", "cat": "Black", "y": "2022-23", "n": "77758", "att": "85", "abs": "45", "gpa": "59", "grad": "84", "otg": "56"}, {"p": "Citywide", "dg": "Ethnicity", "cat": "Hispanic", "y": "2022-23", "n": "129866", "att": "85", "abs": "46", "gpa": "65", "grad": "83", "otg": "58"}, {"p": "Citywide", "dg": "Ethnicity", "cat": "White", "y": "2022-23", "n": "37693", "att": "90", "abs": "31", "gpa": "80", "grad": "93", "otg": "78"}, {"p": "Citywide", "dg": "Gender", "cat": "Female", "y": "2022-23", "n": "149282", "att": "87", "abs": "39", "gpa": "72", "grad": "90", "otg": "68"}, {"p": "Citywide", "dg": "Gender", "cat": "Male", "y": "2022-23", "n": "162184", "att": "86", "abs": "39", "gpa": "66", "grad": "83", "otg": "62"}, {"p": "Citywide", "dg": "Gender", "cat": "Neither male nor female", "y": "2022-23", "n": "57", "att": "84", "abs": "51", "gpa": "78", "grad": "", "otg": "67"}, {"p": "Citywide", "dg": "Poverty status", "cat": "Not Poverty", "y": "2022-23", "n": "78340", "att": "91", "abs": "27", "gpa": "76", "grad": "91", "otg": "76"}, {"p": "Citywide", "dg": "Poverty status", "cat": "Poverty", "y": "2022-23", "n": "233183", "att": "86", "abs": "43", "gpa": "66", "grad": "85", "otg": "61"}, {"p": "Citywide", "dg": "STH status", "cat": "Not STH", "y": "2022-23", "n": "278751", "att": "87", "abs": "38", "gpa": "69", "grad": "88", "otg": "67"}, {"p": "Citywide", "dg": "STH status", "cat": "STH", "y": "2022-23", "n": "32772", "att": "82", "abs": "53", "gpa": "64", "grad": "74", "otg": "47"}, {"p": "Citywide", "dg": "SWD status", "cat": "Not SWD", "y": "2022-23", "n": "245191", "att": "88", "abs": "36", "gpa": "72", "grad": "88", "otg": "69"}, {"p": "Citywide", "dg": "SWD status", "cat": "SWD", "y": "2022-23", "n": "66332", "att": "82", "abs": "53", "gpa": "57", "grad": "77", "otg": "47"}, {"p": "Citywide", "dg": "All Students", "cat": "All Students", "y": "2023-24", "n": "316220", "att": "87", "abs": "39", "gpa": "68", "grad": "86", "otg": "63"}, {"p": "Citywide", "dg": "ELL status", "cat": "ELL", "y": "2023-24", "n": "42850", "att": "83", "abs": "47", "gpa": "63", "grad": "59", "otg": "28"}, {"p": "Citywide", "dg": "ELL status", "cat": "Not ELL", "y": "2023-24", "n": "273370", "att": "88", "abs": "37", "gpa": "69", "grad": "88", "otg": "68"}, {"p": "Citywide", "dg": "Ethnicity", "cat": "Asian", "y": "2023-24", "n": "51138", "att": "93", "abs": "21", "gpa": "84", "grad": "93", "otg": "83"}, {"p": "Citywide", "dg": "Ethnicity", "cat": "Black", "y": "2023-24", "n": "78948", "att": "85", "abs": "44", "gpa": "59", "grad": "84", "otg": "53"}, {"p": "Citywide", "dg": "Ethnicity", "cat": "Hispanic", "y": "2023-24", "n": "138014", "att": "85", "abs": "46", "gpa": "65", "grad": "81", "otg": "55"}, {"p": "Citywide", "dg": "Ethnicity", "cat": "White", "y": "2023-24", "n": "38094", "att": "90", "abs": "31", "gpa": "79", "grad": "93", "otg": "77"}, {"p": "Citywide", "dg": "Gender", "cat": "Female", "y": "2023-24", "n": "151241", "att": "87", "abs": "39", "gpa": "71", "grad": "88", "otg": "66"}, {"p": "Citywide", "dg": "Gender", "cat": "Male", "y": "2023-24", "n": "164866", "att": "87", "abs": "39", "gpa": "66", "grad": "83", "otg": "60"}, {"p": "Citywide", "dg": "Gender", "cat": "Neither male nor female", "y": "2023-24", "n": "113", "att": "87", "abs": "42", "gpa": "76", "grad": "", "otg": "69"}, {"p": "Citywide", "dg": "Poverty status", "cat": "Not Poverty", "y": "2023-24", "n": "71410", "att": "91", "abs": "26", "gpa": "76", "grad": "91", "otg": "77"}, {"p": "Citywide", "dg": "Poverty status", "cat": "Poverty", "y": "2023-24", "n": "244810", "att": "86", "abs": "42", "gpa": "66", "grad": "84", "otg": "59"}, {"p": "Citywide", "dg": "STH status", "cat": "Not STH", "y": "2023-24", "n": "276606", "att": "88", "abs": "37", "gpa": "69", "grad": "87", "otg": "66"}, {"p": "Citywide", "dg": "STH status", "cat": "STH", "y": "2023-24", "n": "39614", "att": "81", "abs": "53", "gpa": "64", "grad": "74", "otg": "42"}, {"p": "Citywide", "dg": "SWD status", "cat": "Not SWD", "y": "2023-24", "n": "249449", "att": "88", "abs": "35", "gpa": "72", "grad": "88", "otg": "67"}, {"p": "Citywide", "dg": "SWD status", "cat": "SWD", "y": "2023-24", "n": "66771", "att": "82", "abs": "52", "gpa": "56", "grad": "76", "otg": "46"}, {"p": "Citywide", "dg": "All Students", "cat": "All Students", "y": "2024-25", "n": "320190", "att": "87", "abs": "38", "gpa": "68", "grad": "85", "otg": "61"}, {"p": "Citywide", "dg": "ELL status", "cat": "ELL", "y": "2024-25", "n": "46903", "att": "83", "abs": "46", "gpa": "62", "grad": "56", "otg": "27"}, {"p": "Citywide", "dg": "ELL status", "cat": "Not ELL", "y": "2024-25", "n": "273287", "att": "88", "abs": "36", "gpa": "69", "grad": "88", "otg": "67"}, {"p": "Citywide", "dg": "Ethnicity", "cat": "Asian", "y": "2024-25", "n": "51332", "att": "92", "abs": "22", "gpa": "84", "grad": "93", "otg": "82"}, {"p": "Citywide", "dg": "Ethnicity", "cat": "Black", "y": "2024-25", "n": "79460", "att": "85", "abs": "43", "gpa": "58", "grad": "82", "otg": "50"}, {"p": "Citywide", "dg": "Ethnicity", "cat": "Hispanic", "y": "2024-25", "n": "141495", "att": "85", "abs": "44", "gpa": "65", "grad": "81", "otg": "53"}, {"p": "Citywide", "dg": "Ethnicity", "cat": "White", "y": "2024-25", "n": "37264", "att": "90", "abs": "30", "gpa": "80", "grad": "91", "otg": "75"}, {"p": "Citywide", "dg": "Gender", "cat": "Female", "y": "2024-25", "n": "152362", "att": "87", "abs": "38", "gpa": "71", "grad": "88", "otg": "64"}, {"p": "Citywide", "dg": "Gender", "cat": "Male", "y": "2024-25", "n": "167713", "att": "87", "abs": "37", "gpa": "66", "grad": "82", "otg": "59"}, {"p": "Citywide", "dg": "Gender", "cat": "Neither male nor female", "y": "2024-25", "n": "115", "att": "85", "abs": "49", "gpa": "72", "grad": "", "otg": "57"}, {"p": "Citywide", "dg": "Poverty status", "cat": "Not Poverty", "y": "2024-25", "n": "71062", "att": "91", "abs": "24", "gpa": "76", "grad": "90", "otg": "75"}, {"p": "Citywide", "dg": "Poverty status", "cat": "Poverty", "y": "2024-25", "n": "249128", "att": "86", "abs": "41", "gpa": "66", "grad": "83", "otg": "57"}, {"p": "Citywide", "dg": "STH status", "cat": "Not STH", "y": "2024-25", "n": "274282", "att": "88", "abs": "35", "gpa": "69", "grad": "86", "otg": "64"}, {"p": "Citywide", "dg": "STH status", "cat": "STH", "y": "2024-25", "n": "45908", "att": "81", "abs": "52", "gpa": "63", "grad": "73", "otg": "40"}, {"p": "Citywide", "dg": "SWD status", "cat": "Not SWD", "y": "2024-25", "n": "252104", "att": "88", "abs": "34", "gpa": "71", "grad": "87", "otg": "65"}, {"p": "Citywide", "dg": "SWD status", "cat": "SWD", "y": "2024-25", "n": "68086", "att": "82", "abs": "50", "gpa": "56", "grad": "74", "otg": "46"}, {"p": "CTE", "dg": "All Students", "cat": "All Students", "y": "2018-19", "n": "133721", "att": "89", "abs": "29", "gpa": "78", "grad": "85", "otg": "58"}, {"p": "CTE", "dg": "ELL status", "cat": "ELL", "y": "2018-19", "n": "13993", "att": "84", "abs": "41", "gpa": "68", "grad": "43", "otg": "24"}, {"p": "CTE", "dg": "ELL status", "cat": "Not ELL", "y": "2018-19", "n": "119728", "att": "90", "abs": "28", "gpa": "79", "grad": "88", "otg": "62"}, {"p": "CTE", "dg": "Ethnicity", "cat": "Asian", "y": "2018-19", "n": "29546", "att": "93", "abs": "17", "gpa": "85", "grad": "89", "otg": "74"}, {"p": "CTE", "dg": "Ethnicity", "cat": "Black", "y": "2018-19", "n": "27162", "att": "87", "abs": "36", "gpa": "74", "grad": "84", "otg": "45"}, {"p": "CTE", "dg": "Ethnicity", "cat": "Hispanic", "y": "2018-19", "n": "48786", "att": "87", "abs": "37", "gpa": "74", "grad": "79", "otg": "49"}, {"p": "CTE", "dg": "Ethnicity", "cat": "White", "y": "2018-19", "n": "24251", "att": "92", "abs": "22", "gpa": "83", "grad": "90", "otg": "69"}, {"p": "CTE", "dg": "Gender", "cat": "Female", "y": "2018-19", "n": "63332", "att": "90", "abs": "28", "gpa": "81", "grad": "89", "otg": "62"}, {"p": "CTE", "dg": "Gender", "cat": "Male", "y": "2018-19", "n": "70388", "att": "89", "abs": "30", "gpa": "75", "grad": "81", "otg": "54"}, {"p": "CTE", "dg": "Poverty status", "cat": "Not Poverty", "y": "2018-19", "n": "39038", "att": "92", "abs": "22", "gpa": "81", "grad": "88", "otg": "68"}, {"p": "CTE", "dg": "Poverty status", "cat": "Poverty", "y": "2018-19", "n": "94683", "att": "89", "abs": "32", "gpa": "77", "grad": "83", "otg": "53"}, {"p": "CTE", "dg": "STH status", "cat": "Not STH", "y": "2018-19", "n": "122140", "att": "90", "abs": "28", "gpa": "79", "grad": "86", "otg": "60"}, {"p": "CTE", "dg": "STH status", "cat": "STH", "y": "2018-19", "n": "11581", "att": "83", "abs": "46", "gpa": "72", "grad": "71", "otg": "39"}, {"p": "CTE", "dg": "SWD status", "cat": "Not SWD", "y": "2018-19", "n": "111900", "att": "91", "abs": "27", "gpa": "80", "grad": "88", "otg": "62"}, {"p": "CTE", "dg": "SWD status", "cat": "SWD", "y": "2018-19", "n": "21821", "att": "83", "abs": "44", "gpa": "69", "grad": "67", "otg": "35"}, {"p": "CTE", "dg": "All Students", "cat": "All Students", "y": "2019-20", "n": "132975", "att": "90", "abs": "27", "gpa": "80", "grad": "87", "otg": "11"}, {"p": "CTE", "dg": "ELL status", "cat": "ELL", "y": "2019-20", "n": "13047", "att": "84", "abs": "40", "gpa": "70", "grad": "48", "otg": "5"}, {"p": "CTE", "dg": "ELL status", "cat": "Not ELL", "y": "2019-20", "n": "119928", "att": "91", "abs": "26", "gpa": "81", "grad": "90", "otg": "11"}, {"p": "CTE", "dg": "Ethnicity", "cat": "Asian", "y": "2019-20", "n": "29713", "att": "94", "abs": "16", "gpa": "86", "grad": "91", "otg": "11"}, {"p": "CTE", "dg": "Ethnicity", "cat": "Black", "y": "2019-20", "n": "26088", "att": "88", "abs": "34", "gpa": "76", "grad": "85", "otg": "8"}, {"p": "CTE", "dg": "Ethnicity", "cat": "Hispanic", "y": "2019-20", "n": "49056", "att": "88", "abs": "34", "gpa": "77", "grad": "82", "otg": "10"}, {"p": "CTE", "dg": "Ethnicity", "cat": "White", "y": "2019-20", "n": "24239", "att": "92", "abs": "21", "gpa": "85", "grad": "92", "otg": "15"}, {"p": "CTE", "dg": "Gender", "cat": "Female", "y": "2019-20", "n": "63148", "att": "91", "abs": "26", "gpa": "83", "grad": "91", "otg": "12"}, {"p": "CTE", "dg": "Gender", "cat": "Male", "y": "2019-20", "n": "69827", "att": "90", "abs": "28", "gpa": "77", "grad": "82", "otg": "10"}, {"p": "CTE", "dg": "Poverty status", "cat": "Not Poverty", "y": "2019-20", "n": "37404", "att": "93", "abs": "19", "gpa": "84", "grad": "90", "otg": "13"}, {"p": "CTE", "dg": "Poverty status", "cat": "Poverty", "y": "2019-20", "n": "95571", "att": "89", "abs": "30", "gpa": "79", "grad": "85", "otg": "10"}, {"p": "CTE", "dg": "STH status", "cat": "Not STH", "y": "2019-20", "n": "121533", "att": "91", "abs": "26", "gpa": "81", "grad": "88", "otg": "11"}, {"p": "CTE", "dg": "STH status", "cat": "STH", "y": "2019-20", "n": "11442", "att": "84", "abs": "43", "gpa": "74", "grad": "74", "otg": "6"}, {"p": "CTE", "dg": "SWD status", "cat": "Not SWD", "y": "2019-20", "n": "110937", "att": "91", "abs": "25", "gpa": "82", "grad": "89", "otg": "12"}, {"p": "CTE", "dg": "SWD status", "cat": "SWD", "y": "2019-20", "n": "22038", "att": "85", "abs": "41", "gpa": "71", "grad": "71", "otg": "7"}, {"p": "CTE", "dg": "All Students", "cat": "All Students", "y": "2020-21", "n": "132771", "att": "87", "abs": "33", "gpa": "80", "grad": "89", "otg": "65"}, {"p": "CTE", "dg": "ELL status", "cat": "ELL", "y": "2020-21", "n": "14089", "att": "79", "abs": "46", "gpa": "70", "grad": "63", "otg": "43"}, {"p": "CTE", "dg": "ELL status", "cat": "Not ELL", "y": "2020-21", "n": "118682", "att": "88", "abs": "31", "gpa": "82", "grad": "91", "otg": "67"}, {"p": "CTE", "dg": "Ethnicity", "cat": "Asian", "y": "2020-21", "n": "29808", "att": "93", "abs": "17", "gpa": "87", "grad": "92", "otg": "75"}, {"p": "CTE", "dg": "Ethnicity", "cat": "Black", "y": "2020-21", "n": "25401", "att": "83", "abs": "43", "gpa": "76", "grad": "87", "otg": "55"}, {"p": "CTE", "dg": "Ethnicity", "cat": "Hispanic", "y": "2020-21", "n": "49474", "att": "83", "abs": "41", "gpa": "76", "grad": "84", "otg": "58"}, {"p": "CTE", "dg": "Ethnicity", "cat": "White", "y": "2020-21", "n": "23690", "att": "90", "abs": "24", "gpa": "85", "grad": "93", "otg": "75"}, {"p": "CTE", "dg": "Gender", "cat": "Female", "y": "2020-21", "n": "62875", "att": "89", "abs": "29", "gpa": "84", "grad": "93", "otg": "69"}, {"p": "CTE", "dg": "Gender", "cat": "Male", "y": "2020-21", "n": "69896", "att": "85", "abs": "36", "gpa": "77", "grad": "85", "otg": "61"}, {"p": "CTE", "dg": "Poverty status", "cat": "Not Poverty", "y": "2020-21", "n": "37152", "att": "90", "abs": "24", "gpa": "84", "grad": "91", "otg": "73"}, {"p": "CTE", "dg": "Poverty status", "cat": "Poverty", "y": "2020-21", "n": "95619", "att": "85", "abs": "36", "gpa": "79", "grad": "87", "otg": "62"}, {"p": "CTE", "dg": "STH status", "cat": "Not STH", "y": "2020-21", "n": "121989", "att": "87", "abs": "31", "gpa": "81", "grad": "89", "otg": "66"}, {"p": "CTE", "dg": "STH status", "cat": "STH", "y": "2020-21", "n": "10782", "att": "80", "abs": "47", "gpa": "73", "grad": "79", "otg": "50"}, {"p": "CTE", "dg": "SWD status", "cat": "Not SWD", "y": "2020-21", "n": "109806", "att": "88", "abs": "30", "gpa": "82", "grad": "91", "otg": "68"}, {"p": "CTE", "dg": "SWD status", "cat": "SWD", "y": "2020-21", "n": "22965", "att": "80", "abs": "47", "gpa": "72", "grad": "75", "otg": "49"}, {"p": "CTE", "dg": "All Students", "cat": "All Students", "y": "2021-22", "n": "129362", "att": "86", "abs": "42", "gpa": "80", "grad": "90", "otg": "72"}, {"p": "CTE", "dg": "ELL status", "cat": "ELL", "y": "2021-22", "n": "13906", "att": "82", "abs": "50", "gpa": "72", "grad": "71", "otg": "50"}, {"p": "CTE", "dg": "ELL status", "cat": "Not ELL", "y": "2021-22", "n": "115456", "att": "87", "abs": "41", "gpa": "81", "grad": "92", "otg": "75"}, {"p": "CTE", "dg": "Ethnicity", "cat": "Asian", "y": "2021-22", "n": "29261", "att": "91", "abs": "25", "gpa": "87", "grad": "94", "otg": "84"}, {"p": "CTE", "dg": "Ethnicity", "cat": "Black", "y": "2021-22", "n": "24298", "att": "83", "abs": "51", "gpa": "75", "grad": "88", "otg": "62"}, {"p": "CTE", "dg": "Ethnicity", "cat": "Hispanic", "y": "2021-22", "n": "49185", "att": "84", "abs": "49", "gpa": "76", "grad": "85", "otg": "65"}, {"p": "CTE", "dg": "Ethnicity", "cat": "White", "y": "2021-22", "n": "22168", "att": "88", "abs": "39", "gpa": "85", "grad": "93", "otg": "81"}, {"p": "CTE", "dg": "Gender", "cat": "Female", "y": "2021-22", "n": "61565", "att": "87", "abs": "42", "gpa": "83", "grad": "93", "otg": "76"}, {"p": "CTE", "dg": "Gender", "cat": "Male", "y": "2021-22", "n": "67797", "att": "86", "abs": "42", "gpa": "78", "grad": "86", "otg": "70"}, {"p": "CTE", "dg": "Poverty status", "cat": "Not Poverty", "y": "2021-22", "n": "36716", "att": "89", "abs": "33", "gpa": "84", "grad": "91", "otg": "81"}, {"p": "CTE", "dg": "Poverty status", "cat": "Poverty", "y": "2021-22", "n": "92646", "att": "85", "abs": "45", "gpa": "79", "grad": "89", "otg": "69"}, {"p": "CTE", "dg": "STH status", "cat": "Not STH", "y": "2021-22", "n": "118850", "att": "87", "abs": "41", "gpa": "81", "grad": "91", "otg": "74"}, {"p": "CTE", "dg": "STH status", "cat": "STH", "y": "2021-22", "n": "10512", "att": "80", "abs": "57", "gpa": "74", "grad": "78", "otg": "57"}, {"p": "CTE", "dg": "SWD status", "cat": "Not SWD", "y": "2021-22", "n": "106455", "att": "87", "abs": "39", "gpa": "82", "grad": "92", "otg": "76"}, {"p": "CTE", "dg": "SWD status", "cat": "SWD", "y": "2021-22", "n": "22907", "att": "80", "abs": "57", "gpa": "72", "grad": "79", "otg": "55"}, {"p": "CTE", "dg": "All Students", "cat": "All Students", "y": "2022-23", "n": "127198", "att": "89", "abs": "34", "gpa": "80", "grad": "90", "otg": "70"}, {"p": "CTE", "dg": "ELL status", "cat": "ELL", "y": "2022-23", "n": "13562", "att": "84", "abs": "45", "gpa": "70", "grad": "66", "otg": "40"}, {"p": "CTE", "dg": "ELL status", "cat": "Not ELL", "y": "2022-23", "n": "113636", "att": "89", "abs": "33", "gpa": "81", "grad": "92", "otg": "74"}, {"p": "CTE", "dg": "Ethnicity", "cat": "Asian", "y": "2022-23", "n": "28179", "att": "93", "abs": "19", "gpa": "87", "grad": "93", "otg": "84"}, {"p": "CTE", "dg": "Ethnicity", "cat": "Black", "y": "2022-23", "n": "22556", "att": "86", "abs": "42", "gpa": "75", "grad": "88", "otg": "60"}, {"p": "CTE", "dg": "Ethnicity", "cat": "Hispanic", "y": "2022-23", "n": "47947", "att": "86", "abs": "41", "gpa": "76", "grad": "87", "otg": "63"}, {"p": "CTE", "dg": "Ethnicity", "cat": "White", "y": "2022-23", "n": "20980", "att": "90", "abs": "30", "gpa": "84", "grad": "94", "otg": "79"}, {"p": "CTE", "dg": "Gender", "cat": "Female", "y": "2022-23", "n": "60820", "att": "89", "abs": "33", "gpa": "82", "grad": "93", "otg": "73"}, {"p": "CTE", "dg": "Gender", "cat": "Male", "y": "2022-23", "n": "66356", "att": "88", "abs": "35", "gpa": "77", "grad": "87", "otg": "68"}, {"p": "CTE", "dg": "Gender", "cat": "Neither male nor female", "y": "2022-23", "n": "22", "att": "85", "abs": "40", "gpa": "77", "grad": "", "otg": "73"}, {"p": "CTE", "dg": "Poverty status", "cat": "Not Poverty", "y": "2022-23", "n": "35932", "att": "91", "abs": "25", "gpa": "83", "grad": "92", "otg": "79"}, {"p": "CTE", "dg": "Poverty status", "cat": "Poverty", "y": "2022-23", "n": "91266", "att": "88", "abs": "37", "gpa": "78", "grad": "89", "otg": "67"}, {"p": "CTE", "dg": "STH status", "cat": "Not STH", "y": "2022-23", "n": "116262", "att": "89", "abs": "33", "gpa": "80", "grad": "91", "otg": "72"}, {"p": "CTE", "dg": "STH status", "cat": "STH", "y": "2022-23", "n": "10936", "att": "84", "abs": "49", "gpa": "74", "grad": "79", "otg": "54"}, {"p": "CTE", "dg": "SWD status", "cat": "Not SWD", "y": "2022-23", "n": "104798", "att": "90", "abs": "31", "gpa": "81", "grad": "92", "otg": "74"}, {"p": "CTE", "dg": "SWD status", "cat": "SWD", "y": "2022-23", "n": "22400", "att": "83", "abs": "48", "gpa": "72", "grad": "81", "otg": "53"}, {"p": "CTE", "dg": "All Students", "cat": "All Students", "y": "2023-24", "n": "127727", "att": "89", "abs": "33", "gpa": "80", "grad": "89", "otg": "68"}, {"p": "CTE", "dg": "ELL status", "cat": "ELL", "y": "2023-24", "n": "15236", "att": "84", "abs": "45", "gpa": "70", "grad": "58", "otg": "31"}, {"p": "CTE", "dg": "ELL status", "cat": "Not ELL", "y": "2023-24", "n": "112491", "att": "89", "abs": "32", "gpa": "81", "grad": "92", "otg": "73"}, {"p": "CTE", "dg": "Ethnicity", "cat": "Asian", "y": "2023-24", "n": "28755", "att": "93", "abs": "19", "gpa": "87", "grad": "94", "otg": "84"}, {"p": "CTE", "dg": "Ethnicity", "cat": "Black", "y": "2023-24", "n": "22480", "att": "87", "abs": "40", "gpa": "75", "grad": "89", "otg": "57"}, {"p": "CTE", "dg": "Ethnicity", "cat": "Hispanic", "y": "2023-24", "n": "50801", "att": "86", "abs": "41", "gpa": "75", "grad": "85", "otg": "60"}, {"p": "CTE", "dg": "Ethnicity", "cat": "White", "y": "2023-24", "n": "21177", "att": "90", "abs": "29", "gpa": "84", "grad": "93", "otg": "79"}, {"p": "CTE", "dg": "Gender", "cat": "Female", "y": "2023-24", "n": "61277", "att": "89", "abs": "33", "gpa": "82", "grad": "92", "otg": "71"}, {"p": "CTE", "dg": "Gender", "cat": "Male", "y": "2023-24", "n": "66404", "att": "88", "abs": "34", "gpa": "78", "grad": "87", "otg": "66"}, {"p": "CTE", "dg": "Gender", "cat": "Neither male nor female", "y": "2023-24", "n": "46", "att": "89", "abs": "37", "gpa": "82", "grad": "", "otg": "76"}, {"p": "CTE", "dg": "Poverty status", "cat": "Not Poverty", "y": "2023-24", "n": "32854", "att": "92", "abs": "23", "gpa": "84", "grad": "93", "otg": "80"}, {"p": "CTE", "dg": "Poverty status", "cat": "Poverty", "y": "2023-24", "n": "94873", "att": "88", "abs": "37", "gpa": "78", "grad": "88", "otg": "64"}, {"p": "CTE", "dg": "STH status", "cat": "Not STH", "y": "2023-24", "n": "114431", "att": "89", "abs": "32", "gpa": "80", "grad": "90", "otg": "71"}, {"p": "CTE", "dg": "STH status", "cat": "STH", "y": "2023-24", "n": "13296", "att": "83", "abs": "50", "gpa": "73", "grad": "78", "otg": "48"}, {"p": "CTE", "dg": "SWD status", "cat": "Not SWD", "y": "2023-24", "n": "105589", "att": "90", "abs": "31", "gpa": "81", "grad": "91", "otg": "72"}, {"p": "CTE", "dg": "SWD status", "cat": "SWD", "y": "2023-24", "n": "22138", "att": "84", "abs": "47", "gpa": "72", "grad": "81", "otg": "52"}, {"p": "CTE", "dg": "All Students", "cat": "All Students", "y": "2024-25", "n": "129648", "att": "89", "abs": "33", "gpa": "80", "grad": "89", "otg": "67"}, {"p": "CTE", "dg": "ELL status", "cat": "ELL", "y": "2024-25", "n": "17271", "att": "84", "abs": "44", "gpa": "70", "grad": "58", "otg": "30"}, {"p": "CTE", "dg": "ELL status", "cat": "Not ELL", "y": "2024-25", "n": "112377", "att": "89", "abs": "31", "gpa": "81", "grad": "92", "otg": "72"}, {"p": "CTE", "dg": "Ethnicity", "cat": "Asian", "y": "2024-25", "n": "29049", "att": "93", "abs": "20", "gpa": "87", "grad": "94", "otg": "83"}, {"p": "CTE", "dg": "Ethnicity", "cat": "Black", "y": "2024-25", "n": "22532", "att": "86", "abs": "40", "gpa": "76", "grad": "87", "otg": "55"}, {"p": "CTE", "dg": "Ethnicity", "cat": "Hispanic", "y": "2024-25", "n": "52384", "att": "87", "abs": "39", "gpa": "76", "grad": "85", "otg": "58"}, {"p": "CTE", "dg": "Ethnicity", "cat": "White", "y": "2024-25", "n": "20875", "att": "90", "abs": "29", "gpa": "84", "grad": "92", "otg": "77"}, {"p": "CTE", "dg": "Gender", "cat": "Female", "y": "2024-25", "n": "62272", "att": "89", "abs": "33", "gpa": "82", "grad": "92", "otg": "69"}, {"p": "CTE", "dg": "Gender", "cat": "Male", "y": "2024-25", "n": "67328", "att": "88", "abs": "33", "gpa": "78", "grad": "86", "otg": "64"}, {"p": "CTE", "dg": "Gender", "cat": "Neither male nor female", "y": "2024-25", "n": "48", "att": "85", "abs": "37", "gpa": "81", "grad": "", "otg": "69"}, {"p": "CTE", "dg": "Poverty status", "cat": "Not Poverty", "y": "2024-25", "n": "32917", "att": "92", "abs": "23", "gpa": "84", "grad": "92", "otg": "78"}, {"p": "CTE", "dg": "Poverty status", "cat": "Poverty", "y": "2024-25", "n": "96731", "att": "88", "abs": "36", "gpa": "78", "grad": "88", "otg": "63"}, {"p": "CTE", "dg": "STH status", "cat": "Not STH", "y": "2024-25", "n": "114081", "att": "89", "abs": "31", "gpa": "81", "grad": "90", "otg": "69"}, {"p": "CTE", "dg": "STH status", "cat": "STH", "y": "2024-25", "n": "15567", "att": "83", "abs": "49", "gpa": "73", "grad": "79", "otg": "46"}, {"p": "CTE", "dg": "SWD status", "cat": "Not SWD", "y": "2024-25", "n": "107307", "att": "90", "abs": "30", "gpa": "81", "grad": "91", "otg": "70"}, {"p": "CTE", "dg": "SWD status", "cat": "SWD", "y": "2024-25", "n": "22341", "att": "84", "abs": "45", "gpa": "72", "grad": "80", "otg": "52"}, {"p": "CTE - students", "dg": "All Students", "cat": "All Students", "y": "2018-19", "n": "70739", "att": "91", "abs": "27", "gpa": "80", "grad": "89", "otg": "61"}, {"p": "CTE - students", "dg": "ELL status", "cat": "ELL", "y": "2018-19", "n": "4818", "att": "86", "abs": "38", "gpa": "72", "grad": "61", "otg": "25"}, {"p": "CTE - students", "dg": "ELL status", "cat": "Not ELL", "y": "2018-19", "n": "65921", "att": "91", "abs": "26", "gpa": "81", "grad": "90", "otg": "64"}, {"p": "CTE - students", "dg": "Ethnicity", "cat": "Asian", "y": "2018-19", "n": "14094", "att": "95", "abs": "12", "gpa": "87", "grad": "94", "otg": "82"}, {"p": "CTE - students", "dg": "Ethnicity", "cat": "Black", "y": "2018-19", "n": "16762", "att": "88", "abs": "34", "gpa": "76", "grad": "87", "otg": "45"}, {"p": "CTE - students", "dg": "Ethnicity", "cat": "Hispanic", "y": "2018-19", "n": "27040", "att": "88", "abs": "34", "gpa": "77", "grad": "86", "otg": "53"}, {"p": "CTE - students", "dg": "Ethnicity", "cat": "White", "y": "2018-19", "n": "10607", "att": "93", "abs": "20", "gpa": "85", "grad": "94", "otg": "75"}, {"p": "CTE - students", "dg": "Gender", "cat": "Female", "y": "2018-19", "n": "31611", "att": "91", "abs": "27", "gpa": "83", "grad": "92", "otg": "64"}, {"p": "CTE - students", "dg": "Gender", "cat": "Male", "y": "2018-19", "n": "39127", "att": "90", "abs": "27", "gpa": "78", "grad": "87", "otg": "58"}, {"p": "CTE - students", "dg": "Poverty status", "cat": "Not Poverty", "y": "2018-19", "n": "20400", "att": "93", "abs": "20", "gpa": "83", "grad": "92", "otg": "71"}, {"p": "CTE - students", "dg": "Poverty status", "cat": "Poverty", "y": "2018-19", "n": "50339", "att": "90", "abs": "30", "gpa": "79", "grad": "88", "otg": "57"}, {"p": "CTE - students", "dg": "STH status", "cat": "Not STH", "y": "2018-19", "n": "64645", "att": "91", "abs": "25", "gpa": "81", "grad": "90", "otg": "63"}, {"p": "CTE - students", "dg": "STH status", "cat": "STH", "y": "2018-19", "n": "6094", "att": "85", "abs": "43", "gpa": "75", "grad": "81", "otg": "41"}, {"p": "CTE - students", "dg": "SWD status", "cat": "Not SWD", "y": "2018-19", "n": "59254", "att": "92", "abs": "24", "gpa": "82", "grad": "92", "otg": "66"}, {"p": "CTE - students", "dg": "SWD status", "cat": "SWD", "y": "2018-19", "n": "11485", "att": "85", "abs": "41", "gpa": "71", "grad": "74", "otg": "37"}, {"p": "CTE - students", "dg": "All Students", "cat": "All Students", "y": "2019-20", "n": "69370", "att": "92", "abs": "25", "gpa": "82", "grad": "93", "otg": "12"}, {"p": "CTE - students", "dg": "ELL status", "cat": "ELL", "y": "2019-20", "n": "4508", "att": "86", "abs": "38", "gpa": "75", "grad": "73", "otg": "5"}, {"p": "CTE - students", "dg": "ELL status", "cat": "Not ELL", "y": "2019-20", "n": "64862", "att": "92", "abs": "24", "gpa": "83", "grad": "93", "otg": "13"}, {"p": "CTE - students", "dg": "Ethnicity", "cat": "Asian", "y": "2019-20", "n": "14037", "att": "96", "abs": "12", "gpa": "89", "grad": "97", "otg": "14"}, {"p": "CTE - students", "dg": "Ethnicity", "cat": "Black", "y": "2019-20", "n": "15937", "att": "90", "abs": "31", "gpa": "78", "grad": "91", "otg": "8"}, {"p": "CTE - students", "dg": "Ethnicity", "cat": "Hispanic", "y": "2019-20", "n": "26734", "att": "90", "abs": "31", "gpa": "80", "grad": "90", "otg": "12"}, {"p": "CTE - students", "dg": "Ethnicity", "cat": "White", "y": "2019-20", "n": "10484", "att": "93", "abs": "19", "gpa": "87", "grad": "96", "otg": "16"}, {"p": "CTE - students", "dg": "Gender", "cat": "Female", "y": "2019-20", "n": "30966", "att": "92", "abs": "25", "gpa": "85", "grad": "95", "otg": "14"}, {"p": "CTE - students", "dg": "Gender", "cat": "Male", "y": "2019-20", "n": "38404", "att": "92", "abs": "24", "gpa": "80", "grad": "91", "otg": "11"}, {"p": "CTE - students", "dg": "Poverty status", "cat": "Not Poverty", "y": "2019-20", "n": "19397", "att": "94", "abs": "17", "gpa": "86", "grad": "96", "otg": "15"}, {"p": "CTE - students", "dg": "Poverty status", "cat": "Poverty", "y": "2019-20", "n": "49973", "att": "91", "abs": "28", "gpa": "81", "grad": "91", "otg": "11"}, {"p": "CTE - students", "dg": "STH status", "cat": "Not STH", "y": "2019-20", "n": "63532", "att": "92", "abs": "23", "gpa": "83", "grad": "93", "otg": "13"}, {"p": "CTE - students", "dg": "STH status", "cat": "STH", "y": "2019-20", "n": "5838", "att": "86", "abs": "41", "gpa": "78", "grad": "86", "otg": "7"}, {"p": "CTE - students", "dg": "SWD status", "cat": "Not SWD", "y": "2019-20", "n": "58213", "att": "93", "abs": "22", "gpa": "84", "grad": "95", "otg": "13"}, {"p": "CTE - students", "dg": "SWD status", "cat": "SWD", "y": "2019-20", "n": "11157", "att": "87", "abs": "38", "gpa": "74", "grad": "80", "otg": "7"}, {"p": "CTE - students", "dg": "All Students", "cat": "All Students", "y": "2020-21", "n": "68420", "att": "89", "abs": "29", "gpa": "84", "grad": "94", "otg": "65"}, {"p": "CTE - students", "dg": "ELL status", "cat": "ELL", "y": "2020-21", "n": "4826", "att": "84", "abs": "41", "gpa": "78", "grad": "82", "otg": "46"}, {"p": "CTE - students", "dg": "ELL status", "cat": "Not ELL", "y": "2020-21", "n": "63594", "att": "90", "abs": "28", "gpa": "85", "grad": "94", "otg": "67"}, {"p": "CTE - students", "dg": "Ethnicity", "cat": "Asian", "y": "2020-21", "n": "14757", "att": "95", "abs": "12", "gpa": "91", "grad": "97", "otg": "76"}, {"p": "CTE - students", "dg": "Ethnicity", "cat": "Black", "y": "2020-21", "n": "14793", "att": "86", "abs": "39", "gpa": "80", "grad": "93", "otg": "53"}, {"p": "CTE - students", "dg": "Ethnicity", "cat": "Hispanic", "y": "2020-21", "n": "26337", "att": "87", "abs": "36", "gpa": "81", "grad": "92", "otg": "61"}, {"p": "CTE - students", "dg": "Ethnicity", "cat": "White", "y": "2020-21", "n": "10071", "att": "93", "abs": "19", "gpa": "88", "grad": "96", "otg": "77"}, {"p": "CTE - students", "dg": "Gender", "cat": "Female", "y": "2020-21", "n": "31400", "att": "90", "abs": "27", "gpa": "86", "grad": "95", "otg": "68"}, {"p": "CTE - students", "dg": "Gender", "cat": "Male", "y": "2020-21", "n": "37020", "att": "89", "abs": "30", "gpa": "83", "grad": "93", "otg": "62"}, {"p": "CTE - students", "dg": "Poverty status", "cat": "Not Poverty", "y": "2020-21", "n": "18892", "att": "92", "abs": "21", "gpa": "87", "grad": "96", "otg": "73"}, {"p": "CTE - students", "dg": "Poverty status", "cat": "Poverty", "y": "2020-21", "n": "49528", "att": "88", "abs": "32", "gpa": "83", "grad": "93", "otg": "62"}, {"p": "CTE - students", "dg": "STH status", "cat": "Not STH", "y": "2020-21", "n": "62900", "att": "90", "abs": "28", "gpa": "85", "grad": "94", "otg": "66"}, {"p": "CTE - students", "dg": "STH status", "cat": "STH", "y": "2020-21", "n": "5520", "att": "84", "abs": "42", "gpa": "80", "grad": "90", "otg": "52"}, {"p": "CTE - students", "dg": "SWD status", "cat": "Not SWD", "y": "2020-21", "n": "57405", "att": "90", "abs": "26", "gpa": "86", "grad": "95", "otg": "68"}, {"p": "CTE - students", "dg": "SWD status", "cat": "SWD", "y": "2020-21", "n": "11015", "att": "84", "abs": "41", "gpa": "78", "grad": "85", "otg": "50"}, {"p": "CTE - students", "dg": "All Students", "cat": "All Students", "y": "2021-22", "n": "69590", "att": "87", "abs": "41", "gpa": "82", "grad": "92", "otg": "73"}, {"p": "CTE - students", "dg": "ELL status", "cat": "ELL", "y": "2021-22", "n": "5498", "att": "83", "abs": "50", "gpa": "76", "grad": "85", "otg": "51"}, {"p": "CTE - students", "dg": "ELL status", "cat": "Not ELL", "y": "2021-22", "n": "64092", "att": "87", "abs": "40", "gpa": "82", "grad": "93", "otg": "74"}, {"p": "CTE - students", "dg": "Ethnicity", "cat": "Asian", "y": "2021-22", "n": "13823", "att": "93", "abs": "22", "gpa": "89", "grad": "96", "otg": "87"}, {"p": "CTE - students", "dg": "Ethnicity", "cat": "Black", "y": "2021-22", "n": "15699", "att": "84", "abs": "49", "gpa": "77", "grad": "90", "otg": "61"}, {"p": "CTE - students", "dg": "Ethnicity", "cat": "Hispanic", "y": "2021-22", "n": "28074", "att": "85", "abs": "48", "gpa": "79", "grad": "90", "otg": "68"}, {"p": "CTE - students", "dg": "Ethnicity", "cat": "White", "y": "2021-22", "n": "9432", "att": "89", "abs": "35", "gpa": "87", "grad": "95", "otg": "83"}, {"p": "CTE - students", "dg": "Gender", "cat": "Female", "y": "2021-22", "n": "31775", "att": "87", "abs": "41", "gpa": "84", "grad": "94", "otg": "75"}, {"p": "CTE - students", "dg": "Gender", "cat": "Male", "y": "2021-22", "n": "37815", "att": "87", "abs": "40", "gpa": "80", "grad": "90", "otg": "71"}, {"p": "CTE - students", "dg": "Poverty status", "cat": "Not Poverty", "y": "2021-22", "n": "19048", "att": "90", "abs": "31", "gpa": "86", "grad": "95", "otg": "81"}, {"p": "CTE - students", "dg": "Poverty status", "cat": "Poverty", "y": "2021-22", "n": "50542", "att": "86", "abs": "44", "gpa": "80", "grad": "91", "otg": "69"}, {"p": "CTE - students", "dg": "STH status", "cat": "Not STH", "y": "2021-22", "n": "63554", "att": "88", "abs": "39", "gpa": "82", "grad": "92", "otg": "74"}, {"p": "CTE - students", "dg": "STH status", "cat": "STH", "y": "2021-22", "n": "6036", "att": "81", "abs": "56", "gpa": "77", "grad": "86", "otg": "58"}, {"p": "CTE - students", "dg": "SWD status", "cat": "Not SWD", "y": "2021-22", "n": "57215", "att": "88", "abs": "38", "gpa": "83", "grad": "94", "otg": "76"}, {"p": "CTE - students", "dg": "SWD status", "cat": "SWD", "y": "2021-22", "n": "12375", "att": "82", "abs": "54", "gpa": "74", "grad": "82", "otg": "56"}, {"p": "CTE - students", "dg": "All Students", "cat": "All Students", "y": "2022-23", "n": "66778", "att": "89", "abs": "32", "gpa": "81", "grad": "93", "otg": "72"}, {"p": "CTE - students", "dg": "ELL status", "cat": "ELL", "y": "2022-23", "n": "4785", "att": "85", "abs": "44", "gpa": "74", "grad": "80", "otg": "43"}, {"p": "CTE - students", "dg": "ELL status", "cat": "Not ELL", "y": "2022-23", "n": "61993", "att": "90", "abs": "31", "gpa": "82", "grad": "93", "otg": "74"}, {"p": "CTE - students", "dg": "Ethnicity", "cat": "Asian", "y": "2022-23", "n": "13988", "att": "94", "abs": "16", "gpa": "89", "grad": "96", "otg": "88"}, {"p": "CTE - students", "dg": "Ethnicity", "cat": "Black", "y": "2022-23", "n": "13973", "att": "87", "abs": "39", "gpa": "77", "grad": "90", "otg": "60"}, {"p": "CTE - students", "dg": "Ethnicity", "cat": "Hispanic", "y": "2022-23", "n": "25870", "att": "87", "abs": "38", "gpa": "78", "grad": "91", "otg": "65"}, {"p": "CTE - students", "dg": "Ethnicity", "cat": "White", "y": "2022-23", "n": "8844", "att": "91", "abs": "26", "gpa": "86", "grad": "95", "otg": "82"}, {"p": "CTE - students", "dg": "Gender", "cat": "Female", "y": "2022-23", "n": "30149", "att": "90", "abs": "32", "gpa": "83", "grad": "94", "otg": "74"}, {"p": "CTE - students", "dg": "Gender", "cat": "Male", "y": "2022-23", "n": "36619", "att": "89", "abs": "31", "gpa": "80", "grad": "91", "otg": "70"}, {"p": "CTE - students", "dg": "Gender", "cat": "Neither male nor female", "y": "2022-23", "n": "10", "att": "76", "abs": "50", "gpa": "77", "grad": "100", "otg": "70"}, {"p": "CTE - students", "dg": "Poverty status", "cat": "Not Poverty", "y": "2022-23", "n": "18420", "att": "92", "abs": "22", "gpa": "85", "grad": "96", "otg": "81"}, {"p": "CTE - students", "dg": "Poverty status", "cat": "Poverty", "y": "2022-23", "n": "48358", "att": "88", "abs": "35", "gpa": "80", "grad": "92", "otg": "68"}, {"p": "CTE - students", "dg": "STH status", "cat": "Not STH", "y": "2022-23", "n": "60932", "att": "90", "abs": "30", "gpa": "82", "grad": "93", "otg": "73"}, {"p": "CTE - students", "dg": "STH status", "cat": "STH", "y": "2022-23", "n": "5846", "att": "85", "abs": "46", "gpa": "76", "grad": "87", "otg": "56"}, {"p": "CTE - students", "dg": "SWD status", "cat": "Not SWD", "y": "2022-23", "n": "55098", "att": "90", "abs": "29", "gpa": "83", "grad": "94", "otg": "75"}, {"p": "CTE - students", "dg": "SWD status", "cat": "SWD", "y": "2022-23", "n": "11680", "att": "85", "abs": "45", "gpa": "73", "grad": "85", "otg": "54"}, {"p": "CTE - students", "dg": "All Students", "cat": "All Students", "y": "2023-24", "n": "66018", "att": "90", "abs": "31", "gpa": "81", "grad": "92", "otg": "71"}, {"p": "CTE - students", "dg": "ELL status", "cat": "ELL", "y": "2023-24", "n": "4845", "att": "86", "abs": "41", "gpa": "74", "grad": "70", "otg": "35"}, {"p": "CTE - students", "dg": "ELL status", "cat": "Not ELL", "y": "2023-24", "n": "61173", "att": "90", "abs": "30", "gpa": "82", "grad": "93", "otg": "73"}, {"p": "CTE - students", "dg": "Ethnicity", "cat": "Asian", "y": "2023-24", "n": "13775", "att": "94", "abs": "16", "gpa": "89", "grad": "96", "otg": "88"}, {"p": "CTE - students", "dg": "Ethnicity", "cat": "Black", "y": "2023-24", "n": "13940", "att": "87", "abs": "38", "gpa": "77", "grad": "90", "otg": "57"}, {"p": "CTE - students", "dg": "Ethnicity", "cat": "Hispanic", "y": "2023-24", "n": "26836", "att": "88", "abs": "37", "gpa": "78", "grad": "89", "otg": "64"}, {"p": "CTE - students", "dg": "Ethnicity", "cat": "White", "y": "2023-24", "n": "9027", "att": "91", "abs": "24", "gpa": "86", "grad": "96", "otg": "83"}, {"p": "CTE - students", "dg": "Gender", "cat": "Female", "y": "2023-24", "n": "29815", "att": "90", "abs": "31", "gpa": "83", "grad": "94", "otg": "72"}, {"p": "CTE - students", "dg": "Gender", "cat": "Male", "y": "2023-24", "n": "36177", "att": "90", "abs": "30", "gpa": "80", "grad": "90", "otg": "69"}, {"p": "CTE - students", "dg": "Gender", "cat": "Neither male nor female", "y": "2023-24", "n": "26", "att": "88", "abs": "42", "gpa": "85", "grad": "100", "otg": "81"}, {"p": "CTE - students", "dg": "Poverty status", "cat": "Not Poverty", "y": "2023-24", "n": "16775", "att": "93", "abs": "20", "gpa": "86", "grad": "96", "otg": "82"}, {"p": "CTE - students", "dg": "Poverty status", "cat": "Poverty", "y": "2023-24", "n": "49243", "att": "89", "abs": "34", "gpa": "80", "grad": "90", "otg": "66"}, {"p": "CTE - students", "dg": "STH status", "cat": "Not STH", "y": "2023-24", "n": "59352", "att": "90", "abs": "29", "gpa": "82", "grad": "93", "otg": "73"}, {"p": "CTE - students", "dg": "STH status", "cat": "STH", "y": "2023-24", "n": "6666", "att": "85", "abs": "44", "gpa": "76", "grad": "84", "otg": "51"}, {"p": "CTE - students", "dg": "SWD status", "cat": "Not SWD", "y": "2023-24", "n": "54427", "att": "91", "abs": "28", "gpa": "83", "grad": "93", "otg": "74"}, {"p": "CTE - students", "dg": "SWD status", "cat": "SWD", "y": "2023-24", "n": "11591", "att": "85", "abs": "44", "gpa": "73", "grad": "83", "otg": "53"}, {"p": "CTE - students", "dg": "All Students", "cat": "All Students", "y": "2024-25", "n": "64374", "att": "90", "abs": "30", "gpa": "82", "grad": "92", "otg": "68"}, {"p": "CTE - students", "dg": "ELL status", "cat": "ELL", "y": "2024-25", "n": "5147", "att": "86", "abs": "41", "gpa": "74", "grad": "73", "otg": "33"}, {"p": "CTE - students", "dg": "ELL status", "cat": "Not ELL", "y": "2024-25", "n": "59227", "att": "90", "abs": "29", "gpa": "83", "grad": "93", "otg": "71"}, {"p": "CTE - students", "dg": "Ethnicity", "cat": "Asian", "y": "2024-25", "n": "13013", "att": "94", "abs": "17", "gpa": "89", "grad": "97", "otg": "88"}, {"p": "CTE - students", "dg": "Ethnicity", "cat": "Black", "y": "2024-25", "n": "13414", "att": "87", "abs": "37", "gpa": "77", "grad": "90", "otg": "54"}, {"p": "CTE - students", "dg": "Ethnicity", "cat": "Hispanic", "y": "2024-25", "n": "26775", "att": "88", "abs": "34", "gpa": "79", "grad": "90", "otg": "61"}, {"p": "CTE - students", "dg": "Ethnicity", "cat": "White", "y": "2024-25", "n": "8604", "att": "92", "abs": "24", "gpa": "86", "grad": "95", "otg": "81"}, {"p": "CTE - students", "dg": "Gender", "cat": "Female", "y": "2024-25", "n": "29167", "att": "90", "abs": "30", "gpa": "84", "grad": "95", "otg": "70"}, {"p": "CTE - students", "dg": "Gender", "cat": "Male", "y": "2024-25", "n": "35179", "att": "90", "abs": "29", "gpa": "80", "grad": "90", "otg": "67"}, {"p": "CTE - students", "dg": "Gender", "cat": "Neither male nor female", "y": "2024-25", "n": "28", "att": "88", "abs": "32", "gpa": "85", "grad": "100", "otg": "68"}, {"p": "CTE - students", "dg": "Poverty status", "cat": "Not Poverty", "y": "2024-25", "n": "15917", "att": "93", "abs": "19", "gpa": "86", "grad": "96", "otg": "81"}, {"p": "CTE - students", "dg": "Poverty status", "cat": "Poverty", "y": "2024-25", "n": "48457", "att": "89", "abs": "33", "gpa": "80", "grad": "91", "otg": "64"}, {"p": "CTE - students", "dg": "STH status", "cat": "Not STH", "y": "2024-25", "n": "57160", "att": "90", "abs": "28", "gpa": "83", "grad": "93", "otg": "71"}, {"p": "CTE - students", "dg": "STH status", "cat": "STH", "y": "2024-25", "n": "7214", "att": "85", "abs": "44", "gpa": "77", "grad": "86", "otg": "50"}, {"p": "CTE - students", "dg": "SWD status", "cat": "Not SWD", "y": "2024-25", "n": "52950", "att": "91", "abs": "27", "gpa": "83", "grad": "94", "otg": "72"}, {"p": "CTE - students", "dg": "SWD status", "cat": "SWD", "y": "2024-25", "n": "11424", "att": "85", "abs": "41", "gpa": "74", "grad": "83", "otg": "53"}, {"p": "FRNYC", "dg": "All Students", "cat": "All Students", "y": "2018-19", "n": "94210", "att": "87", "abs": "37", "gpa": "72", "grad": "77", "otg": "43"}, {"p": "FRNYC", "dg": "ELL status", "cat": "ELL", "y": "2018-19", "n": "14557", "att": "84", "abs": "42", "gpa": "67", "grad": "45", "otg": "17"}, {"p": "FRNYC", "dg": "ELL status", "cat": "Not ELL", "y": "2018-19", "n": "79653", "att": "87", "abs": "37", "gpa": "73", "grad": "80", "otg": "48"}, {"p": "FRNYC", "dg": "Ethnicity", "cat": "Asian", "y": "2018-19", "n": "13348", "att": "91", "abs": "24", "gpa": "80", "grad": "83", "otg": "59"}, {"p": "FRNYC", "dg": "Ethnicity", "cat": "Black", "y": "2018-19", "n": "28672", "att": "86", "abs": "40", "gpa": "70", "grad": "77", "otg": "36"}, {"p": "FRNYC", "dg": "Ethnicity", "cat": "Hispanic", "y": "2018-19", "n": "41163", "att": "85", "abs": "42", "gpa": "71", "grad": "73", "otg": "39"}, {"p": "FRNYC", "dg": "Ethnicity", "cat": "White", "y": "2018-19", "n": "8587", "att": "89", "abs": "28", "gpa": "77", "grad": "82", "otg": "54"}, {"p": "FRNYC", "dg": "Gender", "cat": "Female", "y": "2018-19", "n": "44163", "att": "87", "abs": "37", "gpa": "75", "grad": "82", "otg": "47"}, {"p": "FRNYC", "dg": "Gender", "cat": "Male", "y": "2018-19", "n": "50047", "att": "86", "abs": "38", "gpa": "70", "grad": "73", "otg": "39"}, {"p": "FRNYC", "dg": "Poverty status", "cat": "Not Poverty", "y": "2018-19", "n": "20584", "att": "89", "abs": "30", "gpa": "74", "grad": "78", "otg": "51"}, {"p": "FRNYC", "dg": "Poverty status", "cat": "Poverty", "y": "2018-19", "n": "73626", "att": "86", "abs": "39", "gpa": "72", "grad": "77", "otg": "41"}, {"p": "FRNYC", "dg": "STH status", "cat": "Not STH", "y": "2018-19", "n": "82753", "att": "87", "abs": "36", "gpa": "73", "grad": "79", "otg": "45"}, {"p": "FRNYC", "dg": "STH status", "cat": "STH", "y": "2018-19", "n": "11457", "att": "81", "abs": "50", "gpa": "69", "grad": "64", "otg": "28"}, {"p": "FRNYC", "dg": "SWD status", "cat": "Not SWD", "y": "2018-19", "n": "76596", "att": "88", "abs": "34", "gpa": "74", "grad": "80", "otg": "47"}, {"p": "FRNYC", "dg": "SWD status", "cat": "SWD", "y": "2018-19", "n": "17614", "att": "81", "abs": "51", "gpa": "65", "grad": "60", "otg": "26"}, {"p": "FRNYC", "dg": "All Students", "cat": "All Students", "y": "2019-20", "n": "93352", "att": "87", "abs": "36", "gpa": "75", "grad": "80", "otg": "10"}, {"p": "FRNYC", "dg": "ELL status", "cat": "ELL", "y": "2019-20", "n": "13599", "att": "84", "abs": "42", "gpa": "70", "grad": "50", "otg": "5"}, {"p": "FRNYC", "dg": "ELL status", "cat": "Not ELL", "y": "2019-20", "n": "79753", "att": "88", "abs": "35", "gpa": "75", "grad": "83", "otg": "11"}, {"p": "FRNYC", "dg": "Ethnicity", "cat": "Asian", "y": "2019-20", "n": "13227", "att": "91", "abs": "24", "gpa": "82", "grad": "86", "otg": "16"}, {"p": "FRNYC", "dg": "Ethnicity", "cat": "Black", "y": "2019-20", "n": "27642", "att": "86", "abs": "39", "gpa": "72", "grad": "81", "otg": "6"}, {"p": "FRNYC", "dg": "Ethnicity", "cat": "Hispanic", "y": "2019-20", "n": "41698", "att": "86", "abs": "40", "gpa": "73", "grad": "77", "otg": "8"}, {"p": "FRNYC", "dg": "Ethnicity", "cat": "White", "y": "2019-20", "n": "8588", "att": "90", "abs": "27", "gpa": "79", "grad": "86", "otg": "24"}, {"p": "FRNYC", "dg": "Gender", "cat": "Female", "y": "2019-20", "n": "43653", "att": "88", "abs": "36", "gpa": "77", "grad": "85", "otg": "10"}, {"p": "FRNYC", "dg": "Gender", "cat": "Male", "y": "2019-20", "n": "49699", "att": "87", "abs": "36", "gpa": "72", "grad": "76", "otg": "10"}, {"p": "FRNYC", "dg": "Poverty status", "cat": "Not Poverty", "y": "2019-20", "n": "19337", "att": "90", "abs": "27", "gpa": "77", "grad": "83", "otg": "13"}, {"p": "FRNYC", "dg": "Poverty status", "cat": "Poverty", "y": "2019-20", "n": "74015", "att": "87", "abs": "38", "gpa": "74", "grad": "80", "otg": "9"}, {"p": "FRNYC", "dg": "STH status", "cat": "Not STH", "y": "2019-20", "n": "82112", "att": "88", "abs": "35", "gpa": "75", "grad": "82", "otg": "11"}, {"p": "FRNYC", "dg": "STH status", "cat": "STH", "y": "2019-20", "n": "11240", "att": "82", "abs": "49", "gpa": "71", "grad": "68", "otg": "5"}, {"p": "FRNYC", "dg": "SWD status", "cat": "Not SWD", "y": "2019-20", "n": "75650", "att": "88", "abs": "33", "gpa": "76", "grad": "83", "otg": "11"}, {"p": "FRNYC", "dg": "SWD status", "cat": "SWD", "y": "2019-20", "n": "17702", "att": "82", "abs": "49", "gpa": "68", "grad": "65", "otg": "5"}, {"p": "FRNYC", "dg": "All Students", "cat": "All Students", "y": "2020-21", "n": "92664", "att": "83", "abs": "42", "gpa": "75", "grad": "83", "otg": "55"}, {"p": "FRNYC", "dg": "ELL status", "cat": "ELL", "y": "2020-21", "n": "13974", "att": "79", "abs": "50", "gpa": "69", "grad": "65", "otg": "36"}, {"p": "FRNYC", "dg": "ELL status", "cat": "Not ELL", "y": "2020-21", "n": "78690", "att": "84", "abs": "40", "gpa": "76", "grad": "86", "otg": "58"}, {"p": "FRNYC", "dg": "Ethnicity", "cat": "Asian", "y": "2020-21", "n": "12954", "att": "90", "abs": "24", "gpa": "83", "grad": "88", "otg": "69"}, {"p": "FRNYC", "dg": "Ethnicity", "cat": "Black", "y": "2020-21", "n": "26757", "att": "82", "abs": "46", "gpa": "72", "grad": "84", "otg": "49"}, {"p": "FRNYC", "dg": "Ethnicity", "cat": "Hispanic", "y": "2020-21", "n": "42083", "att": "81", "abs": "47", "gpa": "72", "grad": "81", "otg": "51"}, {"p": "FRNYC", "dg": "Ethnicity", "cat": "White", "y": "2020-21", "n": "8483", "att": "87", "abs": "31", "gpa": "80", "grad": "88", "otg": "67"}, {"p": "FRNYC", "dg": "Gender", "cat": "Female", "y": "2020-21", "n": "43136", "att": "85", "abs": "38", "gpa": "78", "grad": "88", "otg": "59"}, {"p": "FRNYC", "dg": "Gender", "cat": "Male", "y": "2020-21", "n": "49528", "att": "82", "abs": "45", "gpa": "72", "grad": "80", "otg": "51"}, {"p": "FRNYC", "dg": "Poverty status", "cat": "Not Poverty", "y": "2020-21", "n": "18585", "att": "87", "abs": "33", "gpa": "77", "grad": "85", "otg": "62"}, {"p": "FRNYC", "dg": "Poverty status", "cat": "Poverty", "y": "2020-21", "n": "74079", "att": "83", "abs": "44", "gpa": "74", "grad": "83", "otg": "53"}, {"p": "FRNYC", "dg": "STH status", "cat": "Not STH", "y": "2020-21", "n": "81793", "att": "84", "abs": "40", "gpa": "75", "grad": "85", "otg": "57"}, {"p": "FRNYC", "dg": "STH status", "cat": "STH", "y": "2020-21", "n": "10871", "att": "78", "abs": "54", "gpa": "70", "grad": "74", "otg": "42"}, {"p": "FRNYC", "dg": "SWD status", "cat": "Not SWD", "y": "2020-21", "n": "74277", "att": "85", "abs": "39", "gpa": "76", "grad": "87", "otg": "58"}, {"p": "FRNYC", "dg": "SWD status", "cat": "SWD", "y": "2020-21", "n": "18387", "att": "77", "abs": "54", "gpa": "68", "grad": "69", "otg": "41"}, {"p": "FRNYC", "dg": "All Students", "cat": "All Students", "y": "2021-22", "n": "89846", "att": "83", "abs": "51", "gpa": "74", "grad": "85", "otg": "62"}, {"p": "FRNYC", "dg": "ELL status", "cat": "ELL", "y": "2021-22", "n": "13899", "att": "82", "abs": "52", "gpa": "71", "grad": "72", "otg": "42"}, {"p": "FRNYC", "dg": "ELL status", "cat": "Not ELL", "y": "2021-22", "n": "75947", "att": "83", "abs": "50", "gpa": "75", "grad": "87", "otg": "66"}, {"p": "FRNYC", "dg": "Ethnicity", "cat": "Asian", "y": "2021-22", "n": "12282", "att": "88", "abs": "35", "gpa": "83", "grad": "89", "otg": "77"}, {"p": "FRNYC", "dg": "Ethnicity", "cat": "Black", "y": "2021-22", "n": "25432", "att": "81", "abs": "55", "gpa": "72", "grad": "85", "otg": "58"}, {"p": "FRNYC", "dg": "Ethnicity", "cat": "Hispanic", "y": "2021-22", "n": "41743", "att": "82", "abs": "54", "gpa": "73", "grad": "82", "otg": "58"}, {"p": "FRNYC", "dg": "Ethnicity", "cat": "White", "y": "2021-22", "n": "8000", "att": "85", "abs": "45", "gpa": "79", "grad": "89", "otg": "73"}, {"p": "FRNYC", "dg": "Gender", "cat": "Female", "y": "2021-22", "n": "42110", "att": "83", "abs": "51", "gpa": "77", "grad": "89", "otg": "66"}, {"p": "FRNYC", "dg": "Gender", "cat": "Male", "y": "2021-22", "n": "47736", "att": "83", "abs": "50", "gpa": "72", "grad": "81", "otg": "60"}, {"p": "FRNYC", "dg": "Poverty status", "cat": "Not Poverty", "y": "2021-22", "n": "18956", "att": "86", "abs": "41", "gpa": "77", "grad": "86", "otg": "70"}, {"p": "FRNYC", "dg": "Poverty status", "cat": "Poverty", "y": "2021-22", "n": "70890", "att": "82", "abs": "53", "gpa": "74", "grad": "84", "otg": "60"}, {"p": "FRNYC", "dg": "STH status", "cat": "Not STH", "y": "2021-22", "n": "79370", "att": "83", "abs": "49", "gpa": "75", "grad": "86", "otg": "64"}, {"p": "FRNYC", "dg": "STH status", "cat": "STH", "y": "2021-22", "n": "10476", "att": "78", "abs": "61", "gpa": "71", "grad": "76", "otg": "50"}, {"p": "FRNYC", "dg": "SWD status", "cat": "Not SWD", "y": "2021-22", "n": "71467", "att": "84", "abs": "48", "gpa": "76", "grad": "87", "otg": "66"}, {"p": "FRNYC", "dg": "SWD status", "cat": "SWD", "y": "2021-22", "n": "18379", "att": "77", "abs": "62", "gpa": "67", "grad": "74", "otg": "47"}, {"p": "FRNYC", "dg": "All Students", "cat": "All Students", "y": "2022-23", "n": "88478", "att": "86", "abs": "41", "gpa": "74", "grad": "85", "otg": "60"}, {"p": "FRNYC", "dg": "ELL status", "cat": "ELL", "y": "2022-23", "n": "13756", "att": "84", "abs": "45", "gpa": "70", "grad": "69", "otg": "34"}, {"p": "FRNYC", "dg": "ELL status", "cat": "Not ELL", "y": "2022-23", "n": "74722", "att": "86", "abs": "40", "gpa": "74", "grad": "87", "otg": "65"}, {"p": "FRNYC", "dg": "Ethnicity", "cat": "Asian", "y": "2022-23", "n": "11452", "att": "91", "abs": "27", "gpa": "82", "grad": "89", "otg": "77"}, {"p": "FRNYC", "dg": "Ethnicity", "cat": "Black", "y": "2022-23", "n": "23730", "att": "86", "abs": "42", "gpa": "71", "grad": "85", "otg": "56"}, {"p": "FRNYC", "dg": "Ethnicity", "cat": "Hispanic", "y": "2022-23", "n": "40657", "att": "85", "abs": "46", "gpa": "72", "grad": "83", "otg": "55"}, {"p": "FRNYC", "dg": "Ethnicity", "cat": "White", "y": "2022-23", "n": "7744", "att": "88", "abs": "36", "gpa": "78", "grad": "88", "otg": "71"}, {"p": "FRNYC", "dg": "Gender", "cat": "Female", "y": "2022-23", "n": "41571", "att": "86", "abs": "41", "gpa": "76", "grad": "88", "otg": "63"}, {"p": "FRNYC", "dg": "Gender", "cat": "Male", "y": "2022-23", "n": "46896", "att": "86", "abs": "41", "gpa": "72", "grad": "82", "otg": "57"}, {"p": "FRNYC", "dg": "Gender", "cat": "Neither male nor female", "y": "2022-23", "n": "11", "att": "86", "abs": "58", "gpa": "76", "grad": "", "otg": "55"}, {"p": "FRNYC", "dg": "Poverty status", "cat": "Not Poverty", "y": "2022-23", "n": "18325", "att": "89", "abs": "31", "gpa": "77", "grad": "87", "otg": "68"}, {"p": "FRNYC", "dg": "Poverty status", "cat": "Poverty", "y": "2022-23", "n": "70153", "att": "85", "abs": "44", "gpa": "73", "grad": "84", "otg": "58"}, {"p": "FRNYC", "dg": "STH status", "cat": "Not STH", "y": "2022-23", "n": "77303", "att": "87", "abs": "40", "gpa": "74", "grad": "86", "otg": "62"}, {"p": "FRNYC", "dg": "STH status", "cat": "STH", "y": "2022-23", "n": "11175", "att": "82", "abs": "52", "gpa": "70", "grad": "77", "otg": "45"}, {"p": "FRNYC", "dg": "SWD status", "cat": "Not SWD", "y": "2022-23", "n": "70393", "att": "87", "abs": "38", "gpa": "75", "grad": "87", "otg": "64"}, {"p": "FRNYC", "dg": "SWD status", "cat": "SWD", "y": "2022-23", "n": "18085", "att": "81", "abs": "53", "gpa": "66", "grad": "75", "otg": "45"}, {"p": "FRNYC", "dg": "All Students", "cat": "All Students", "y": "2023-24", "n": "89474", "att": "86", "abs": "41", "gpa": "74", "grad": "84", "otg": "57"}, {"p": "FRNYC", "dg": "ELL status", "cat": "ELL", "y": "2023-24", "n": "15213", "att": "84", "abs": "45", "gpa": "70", "grad": "59", "otg": "26"}, {"p": "FRNYC", "dg": "ELL status", "cat": "Not ELL", "y": "2023-24", "n": "74261", "att": "87", "abs": "40", "gpa": "75", "grad": "87", "otg": "63"}, {"p": "FRNYC", "dg": "Ethnicity", "cat": "Asian", "y": "2023-24", "n": "11799", "att": "91", "abs": "27", "gpa": "83", "grad": "89", "otg": "75"}, {"p": "FRNYC", "dg": "Ethnicity", "cat": "Black", "y": "2023-24", "n": "24272", "att": "86", "abs": "41", "gpa": "71", "grad": "85", "otg": "52"}, {"p": "FRNYC", "dg": "Ethnicity", "cat": "Hispanic", "y": "2023-24", "n": "42557", "att": "85", "abs": "45", "gpa": "72", "grad": "81", "otg": "51"}, {"p": "FRNYC", "dg": "Ethnicity", "cat": "White", "y": "2023-24", "n": "7954", "att": "88", "abs": "35", "gpa": "78", "grad": "88", "otg": "68"}, {"p": "FRNYC", "dg": "Gender", "cat": "Female", "y": "2023-24", "n": "42124", "att": "87", "abs": "41", "gpa": "76", "grad": "87", "otg": "59"}, {"p": "FRNYC", "dg": "Gender", "cat": "Male", "y": "2023-24", "n": "47330", "att": "86", "abs": "40", "gpa": "72", "grad": "82", "otg": "54"}, {"p": "FRNYC", "dg": "Gender", "cat": "Neither male nor female", "y": "2023-24", "n": "20", "att": "81", "abs": "67", "gpa": "74", "grad": "", "otg": "47"}, {"p": "FRNYC", "dg": "Poverty status", "cat": "Not Poverty", "y": "2023-24", "n": "16146", "att": "90", "abs": "30", "gpa": "77", "grad": "87", "otg": "67"}, {"p": "FRNYC", "dg": "Poverty status", "cat": "Poverty", "y": "2023-24", "n": "73328", "att": "86", "abs": "43", "gpa": "73", "grad": "84", "otg": "54"}, {"p": "FRNYC", "dg": "STH status", "cat": "Not STH", "y": "2023-24", "n": "76110", "att": "87", "abs": "39", "gpa": "74", "grad": "85", "otg": "59"}, {"p": "FRNYC", "dg": "STH status", "cat": "STH", "y": "2023-24", "n": "13364", "att": "82", "abs": "51", "gpa": "71", "grad": "76", "otg": "40"}, {"p": "FRNYC", "dg": "SWD status", "cat": "Not SWD", "y": "2023-24", "n": "71533", "att": "87", "abs": "38", "gpa": "76", "grad": "87", "otg": "60"}, {"p": "FRNYC", "dg": "SWD status", "cat": "SWD", "y": "2023-24", "n": "17941", "att": "81", "abs": "52", "gpa": "67", "grad": "75", "otg": "43"}, {"p": "FRNYC", "dg": "All Students", "cat": "All Students", "y": "2024-25", "n": "91037", "att": "86", "abs": "40", "gpa": "74", "grad": "84", "otg": "54"}, {"p": "FRNYC", "dg": "ELL status", "cat": "ELL", "y": "2024-25", "n": "16886", "att": "84", "abs": "45", "gpa": "69", "grad": "62", "otg": "25"}, {"p": "FRNYC", "dg": "ELL status", "cat": "Not ELL", "y": "2024-25", "n": "74151", "att": "87", "abs": "38", "gpa": "75", "grad": "87", "otg": "60"}, {"p": "FRNYC", "dg": "Ethnicity", "cat": "Asian", "y": "2024-25", "n": "11982", "att": "91", "abs": "28", "gpa": "82", "grad": "91", "otg": "73"}, {"p": "FRNYC", "dg": "Ethnicity", "cat": "Black", "y": "2024-25", "n": "24521", "att": "86", "abs": "41", "gpa": "71", "grad": "84", "otg": "48"}, {"p": "FRNYC", "dg": "Ethnicity", "cat": "Hispanic", "y": "2024-25", "n": "43526", "att": "85", "abs": "43", "gpa": "72", "grad": "81", "otg": "49"}, {"p": "FRNYC", "dg": "Ethnicity", "cat": "White", "y": "2024-25", "n": "8150", "att": "88", "abs": "36", "gpa": "79", "grad": "86", "otg": "66"}, {"p": "FRNYC", "dg": "Gender", "cat": "Female", "y": "2024-25", "n": "42986", "att": "87", "abs": "40", "gpa": "76", "grad": "87", "otg": "56"}, {"p": "FRNYC", "dg": "Gender", "cat": "Male", "y": "2024-25", "n": "48032", "att": "86", "abs": "39", "gpa": "72", "grad": "81", "otg": "52"}, {"p": "FRNYC", "dg": "Gender", "cat": "Neither male nor female", "y": "2024-25", "n": "19", "att": "76", "abs": "58", "gpa": "65", "grad": "", "otg": "47"}, {"p": "FRNYC", "dg": "Poverty status", "cat": "Not Poverty", "y": "2024-25", "n": "16089", "att": "90", "abs": "29", "gpa": "77", "grad": "87", "otg": "65"}, {"p": "FRNYC", "dg": "Poverty status", "cat": "Poverty", "y": "2024-25", "n": "74948", "att": "86", "abs": "42", "gpa": "73", "grad": "83", "otg": "51"}, {"p": "FRNYC", "dg": "STH status", "cat": "Not STH", "y": "2024-25", "n": "75566", "att": "87", "abs": "38", "gpa": "75", "grad": "85", "otg": "57"}, {"p": "FRNYC", "dg": "STH status", "cat": "STH", "y": "2024-25", "n": "15471", "att": "82", "abs": "51", "gpa": "70", "grad": "76", "otg": "37"}, {"p": "FRNYC", "dg": "SWD status", "cat": "Not SWD", "y": "2024-25", "n": "72800", "att": "87", "abs": "37", "gpa": "76", "grad": "86", "otg": "57"}, {"p": "FRNYC", "dg": "SWD status", "cat": "SWD", "y": "2024-25", "n": "18237", "att": "82", "abs": "50", "gpa": "67", "grad": "74", "otg": "42"}, {"p": "FRNYC - students", "dg": "All Students", "cat": "All Students", "y": "2022-23", "n": "4054", "att": "93", "abs": "22", "gpa": "85", "grad": "97", "otg": "78"}, {"p": "FRNYC - students", "dg": "ELL status", "cat": "ELL", "y": "2022-23", "n": "216", "att": "90", "abs": "31", "gpa": "79", "grad": "81", "otg": "43"}, {"p": "FRNYC - students", "dg": "ELL status", "cat": "Not ELL", "y": "2022-23", "n": "3838", "att": "93", "abs": "21", "gpa": "85", "grad": "97", "otg": "80"}, {"p": "FRNYC - students", "dg": "Ethnicity", "cat": "Asian", "y": "2022-23", "n": "1221", "att": "96", "abs": "9", "gpa": "92", "grad": "98", "otg": "93"}, {"p": "FRNYC - students", "dg": "Ethnicity", "cat": "Black", "y": "2022-23", "n": "855", "att": "91", "abs": "27", "gpa": "79", "grad": "94", "otg": "63"}, {"p": "FRNYC - students", "dg": "Ethnicity", "cat": "Hispanic", "y": "2022-23", "n": "1150", "att": "90", "abs": "33", "gpa": "80", "grad": "96", "otg": "67"}, {"p": "FRNYC - students", "dg": "Ethnicity", "cat": "White", "y": "2022-23", "n": "592", "att": "94", "abs": "16", "gpa": "90", "grad": "99", "otg": "90"}, {"p": "FRNYC - students", "dg": "Gender", "cat": "Female", "y": "2022-23", "n": "1957", "att": "93", "abs": "21", "gpa": "87", "grad": "97", "otg": "80"}, {"p": "FRNYC - students", "dg": "Gender", "cat": "Male", "y": "2022-23", "n": "2097", "att": "93", "abs": "22", "gpa": "83", "grad": "96", "otg": "76"}, {"p": "FRNYC - students", "dg": "Poverty status", "cat": "Not Poverty", "y": "2022-23", "n": "1240", "att": "95", "abs": "14", "gpa": "89", "grad": "99", "otg": "89"}, {"p": "FRNYC - students", "dg": "Poverty status", "cat": "Poverty", "y": "2022-23", "n": "2814", "att": "92", "abs": "25", "gpa": "83", "grad": "96", "otg": "73"}, {"p": "FRNYC - students", "dg": "STH status", "cat": "Not STH", "y": "2022-23", "n": "3722", "att": "93", "abs": "20", "gpa": "85", "grad": "97", "otg": "79"}, {"p": "FRNYC - students", "dg": "STH status", "cat": "STH", "y": "2022-23", "n": "332", "att": "89", "abs": "37", "gpa": "80", "grad": "94", "otg": "64"}, {"p": "FRNYC - students", "dg": "SWD status", "cat": "Not SWD", "y": "2022-23", "n": "3537", "att": "93", "abs": "19", "gpa": "87", "grad": "97", "otg": "81"}, {"p": "FRNYC - students", "dg": "SWD status", "cat": "SWD", "y": "2022-23", "n": "517", "att": "87", "abs": "39", "gpa": "74", "grad": "94", "otg": "55"}, {"p": "FRNYC - students", "dg": "All Students", "cat": "All Students", "y": "2023-24", "n": "19172", "att": "90", "abs": "32", "gpa": "80", "grad": "91", "otg": "57"}, {"p": "FRNYC - students", "dg": "ELL status", "cat": "ELL", "y": "2023-24", "n": "2587", "att": "89", "abs": "35", "gpa": "77", "grad": "74", "otg": "23"}, {"p": "FRNYC - students", "dg": "ELL status", "cat": "Not ELL", "y": "2023-24", "n": "16585", "att": "90", "abs": "31", "gpa": "81", "grad": "92", "otg": "63"}, {"p": "FRNYC - students", "dg": "Ethnicity", "cat": "Asian", "y": "2023-24", "n": "2905", "att": "94", "abs": "17", "gpa": "89", "grad": "98", "otg": "84"}, {"p": "FRNYC - students", "dg": "Ethnicity", "cat": "Black", "y": "2023-24", "n": "5727", "att": "89", "abs": "34", "gpa": "77", "grad": "86", "otg": "50"}, {"p": "FRNYC - students", "dg": "Ethnicity", "cat": "Hispanic", "y": "2023-24", "n": "8330", "att": "88", "abs": "37", "gpa": "78", "grad": "87", "otg": "50"}, {"p": "FRNYC - students", "dg": "Ethnicity", "cat": "White", "y": "2023-24", "n": "1582", "att": "92", "abs": "23", "gpa": "86", "grad": "97", "otg": "74"}, {"p": "FRNYC - students", "dg": "Gender", "cat": "Female", "y": "2023-24", "n": "9254", "att": "89", "abs": "33", "gpa": "82", "grad": "92", "otg": "59"}, {"p": "FRNYC - students", "dg": "Gender", "cat": "Male", "y": "2023-24", "n": "9914", "att": "90", "abs": "30", "gpa": "78", "grad": "89", "otg": "56"}, {"p": "FRNYC - students", "dg": "Gender", "cat": "Neither male nor female", "y": "2023-24", "n": "4", "att": "85", "abs": "50", "gpa": "81", "grad": "", "otg": "25"}, {"p": "FRNYC - students", "dg": "Poverty status", "cat": "Not Poverty", "y": "2023-24", "n": "3494", "att": "93", "abs": "19", "gpa": "85", "grad": "93", "otg": "71"}, {"p": "FRNYC - students", "dg": "Poverty status", "cat": "Poverty", "y": "2023-24", "n": "15678", "att": "89", "abs": "35", "gpa": "79", "grad": "90", "otg": "54"}, {"p": "FRNYC - students", "dg": "STH status", "cat": "Not STH", "y": "2023-24", "n": "16143", "att": "90", "abs": "30", "gpa": "81", "grad": "91", "otg": "61"}, {"p": "FRNYC - students", "dg": "STH status", "cat": "STH", "y": "2023-24", "n": "3029", "att": "86", "abs": "41", "gpa": "77", "grad": "85", "otg": "39"}, {"p": "FRNYC - students", "dg": "SWD status", "cat": "Not SWD", "y": "2023-24", "n": "15812", "att": "91", "abs": "29", "gpa": "82", "grad": "93", "otg": "61"}, {"p": "FRNYC - students", "dg": "SWD status", "cat": "SWD", "y": "2023-24", "n": "3360", "att": "84", "abs": "45", "gpa": "72", "grad": "78", "otg": "40"}, {"p": "FRNYC - students", "dg": "All Students", "cat": "All Students", "y": "2024-25", "n": "30848", "att": "89", "abs": "34", "gpa": "80", "grad": "88", "otg": "54"}, {"p": "FRNYC - students", "dg": "ELL status", "cat": "ELL", "y": "2024-25", "n": "4639", "att": "87", "abs": "38", "gpa": "76", "grad": "71", "otg": "25"}, {"p": "FRNYC - students", "dg": "ELL status", "cat": "Not ELL", "y": "2024-25", "n": "26209", "att": "89", "abs": "33", "gpa": "80", "grad": "90", "otg": "58"}, {"p": "FRNYC - students", "dg": "Ethnicity", "cat": "Asian", "y": "2024-25", "n": "3877", "att": "94", "abs": "19", "gpa": "87", "grad": "97", "otg": "80"}, {"p": "FRNYC - students", "dg": "Ethnicity", "cat": "Black", "y": "2024-25", "n": "9349", "att": "88", "abs": "35", "gpa": "77", "grad": "85", "otg": "47"}, {"p": "FRNYC - students", "dg": "Ethnicity", "cat": "Hispanic", "y": "2024-25", "n": "14254", "att": "87", "abs": "38", "gpa": "78", "grad": "87", "otg": "47"}, {"p": "FRNYC - students", "dg": "Ethnicity", "cat": "White", "y": "2024-25", "n": "2377", "att": "91", "abs": "27", "gpa": "85", "grad": "90", "otg": "70"}, {"p": "FRNYC - students", "dg": "Gender", "cat": "Female", "y": "2024-25", "n": "14791", "att": "89", "abs": "36", "gpa": "81", "grad": "90", "otg": "55"}, {"p": "FRNYC - students", "dg": "Gender", "cat": "Male", "y": "2024-25", "n": "16053", "att": "89", "abs": "32", "gpa": "78", "grad": "87", "otg": "52"}, {"p": "FRNYC - students", "dg": "Gender", "cat": "Neither male nor female", "y": "2024-25", "n": "4", "att": "76", "abs": "50", "gpa": "79", "grad": "100", "otg": "25"}, {"p": "FRNYC - students", "dg": "Poverty status", "cat": "Not Poverty", "y": "2024-25", "n": "5127", "att": "93", "abs": "21", "gpa": "84", "grad": "94", "otg": "67"}, {"p": "FRNYC - students", "dg": "Poverty status", "cat": "Poverty", "y": "2024-25", "n": "25721", "att": "88", "abs": "36", "gpa": "79", "grad": "87", "otg": "51"}, {"p": "FRNYC - students", "dg": "STH status", "cat": "Not STH", "y": "2024-25", "n": "25367", "att": "89", "abs": "32", "gpa": "80", "grad": "89", "otg": "57"}, {"p": "FRNYC - students", "dg": "STH status", "cat": "STH", "y": "2024-25", "n": "5481", "att": "85", "abs": "43", "gpa": "76", "grad": "81", "otg": "37"}, {"p": "FRNYC - students", "dg": "SWD status", "cat": "Not SWD", "y": "2024-25", "n": "25103", "att": "90", "abs": "31", "gpa": "81", "grad": "91", "otg": "57"}, {"p": "FRNYC - students", "dg": "SWD status", "cat": "SWD", "y": "2024-25", "n": "5745", "att": "84", "abs": "45", "gpa": "73", "grad": "74", "otg": "39"}, {"p": "CRMYA", "dg": "All Students", "cat": "All Students", "y": "2018-19", "n": "94210", "att": "87", "abs": "37", "gpa": "72", "grad": "77", "otg": "43"}, {"p": "CRMYA", "dg": "ELL status", "cat": "ELL", "y": "2018-19", "n": "14557", "att": "84", "abs": "42", "gpa": "67", "grad": "45", "otg": "17"}, {"p": "CRMYA", "dg": "ELL status", "cat": "Not ELL", "y": "2018-19", "n": "79653", "att": "87", "abs": "37", "gpa": "73", "grad": "80", "otg": "48"}, {"p": "CRMYA", "dg": "Ethnicity", "cat": "Asian", "y": "2018-19", "n": "13348", "att": "91", "abs": "24", "gpa": "80", "grad": "83", "otg": "59"}, {"p": "CRMYA", "dg": "Ethnicity", "cat": "Black", "y": "2018-19", "n": "28672", "att": "86", "abs": "40", "gpa": "70", "grad": "77", "otg": "36"}, {"p": "CRMYA", "dg": "Ethnicity", "cat": "Hispanic", "y": "2018-19", "n": "41163", "att": "85", "abs": "42", "gpa": "71", "grad": "73", "otg": "39"}, {"p": "CRMYA", "dg": "Ethnicity", "cat": "White", "y": "2018-19", "n": "8587", "att": "89", "abs": "28", "gpa": "77", "grad": "82", "otg": "54"}, {"p": "CRMYA", "dg": "Gender", "cat": "Female", "y": "2018-19", "n": "44163", "att": "87", "abs": "37", "gpa": "75", "grad": "82", "otg": "47"}, {"p": "CRMYA", "dg": "Gender", "cat": "Male", "y": "2018-19", "n": "50047", "att": "86", "abs": "38", "gpa": "70", "grad": "73", "otg": "39"}, {"p": "CRMYA", "dg": "Poverty status", "cat": "Not Poverty", "y": "2018-19", "n": "20584", "att": "89", "abs": "30", "gpa": "74", "grad": "78", "otg": "51"}, {"p": "CRMYA", "dg": "Poverty status", "cat": "Poverty", "y": "2018-19", "n": "73626", "att": "86", "abs": "39", "gpa": "72", "grad": "77", "otg": "41"}, {"p": "CRMYA", "dg": "STH status", "cat": "Not STH", "y": "2018-19", "n": "82753", "att": "87", "abs": "36", "gpa": "73", "grad": "79", "otg": "45"}, {"p": "CRMYA", "dg": "STH status", "cat": "STH", "y": "2018-19", "n": "11457", "att": "81", "abs": "50", "gpa": "69", "grad": "64", "otg": "28"}, {"p": "CRMYA", "dg": "SWD status", "cat": "Not SWD", "y": "2018-19", "n": "76596", "att": "88", "abs": "34", "gpa": "74", "grad": "80", "otg": "47"}, {"p": "CRMYA", "dg": "SWD status", "cat": "SWD", "y": "2018-19", "n": "17614", "att": "81", "abs": "51", "gpa": "65", "grad": "60", "otg": "26"}, {"p": "CRMYA", "dg": "All Students", "cat": "All Students", "y": "2019-20", "n": "93352", "att": "87", "abs": "36", "gpa": "75", "grad": "80", "otg": "10"}, {"p": "CRMYA", "dg": "ELL status", "cat": "ELL", "y": "2019-20", "n": "13599", "att": "84", "abs": "42", "gpa": "70", "grad": "50", "otg": "5"}, {"p": "CRMYA", "dg": "ELL status", "cat": "Not ELL", "y": "2019-20", "n": "79753", "att": "88", "abs": "35", "gpa": "75", "grad": "83", "otg": "11"}, {"p": "CRMYA", "dg": "Ethnicity", "cat": "Asian", "y": "2019-20", "n": "13227", "att": "91", "abs": "24", "gpa": "82", "grad": "86", "otg": "16"}, {"p": "CRMYA", "dg": "Ethnicity", "cat": "Black", "y": "2019-20", "n": "27642", "att": "86", "abs": "39", "gpa": "72", "grad": "81", "otg": "6"}, {"p": "CRMYA", "dg": "Ethnicity", "cat": "Hispanic", "y": "2019-20", "n": "41698", "att": "86", "abs": "40", "gpa": "73", "grad": "77", "otg": "8"}, {"p": "CRMYA", "dg": "Ethnicity", "cat": "White", "y": "2019-20", "n": "8588", "att": "90", "abs": "27", "gpa": "79", "grad": "86", "otg": "24"}, {"p": "CRMYA", "dg": "Gender", "cat": "Female", "y": "2019-20", "n": "43653", "att": "88", "abs": "36", "gpa": "77", "grad": "85", "otg": "10"}, {"p": "CRMYA", "dg": "Gender", "cat": "Male", "y": "2019-20", "n": "49699", "att": "87", "abs": "36", "gpa": "72", "grad": "76", "otg": "10"}, {"p": "CRMYA", "dg": "Poverty status", "cat": "Not Poverty", "y": "2019-20", "n": "19337", "att": "90", "abs": "27", "gpa": "77", "grad": "83", "otg": "13"}, {"p": "CRMYA", "dg": "Poverty status", "cat": "Poverty", "y": "2019-20", "n": "74015", "att": "87", "abs": "38", "gpa": "74", "grad": "80", "otg": "9"}, {"p": "CRMYA", "dg": "STH status", "cat": "Not STH", "y": "2019-20", "n": "82112", "att": "88", "abs": "35", "gpa": "75", "grad": "82", "otg": "11"}, {"p": "CRMYA", "dg": "STH status", "cat": "STH", "y": "2019-20", "n": "11240", "att": "82", "abs": "49", "gpa": "71", "grad": "68", "otg": "5"}, {"p": "CRMYA", "dg": "SWD status", "cat": "Not SWD", "y": "2019-20", "n": "75650", "att": "88", "abs": "33", "gpa": "76", "grad": "83", "otg": "11"}, {"p": "CRMYA", "dg": "SWD status", "cat": "SWD", "y": "2019-20", "n": "17702", "att": "82", "abs": "49", "gpa": "68", "grad": "65", "otg": "5"}, {"p": "CRMYA", "dg": "All Students", "cat": "All Students", "y": "2020-21", "n": "92664", "att": "83", "abs": "42", "gpa": "75", "grad": "83", "otg": "55"}, {"p": "CRMYA", "dg": "ELL status", "cat": "ELL", "y": "2020-21", "n": "13974", "att": "79", "abs": "50", "gpa": "69", "grad": "65", "otg": "36"}, {"p": "CRMYA", "dg": "ELL status", "cat": "Not ELL", "y": "2020-21", "n": "78690", "att": "84", "abs": "40", "gpa": "76", "grad": "86", "otg": "58"}, {"p": "CRMYA", "dg": "Ethnicity", "cat": "Asian", "y": "2020-21", "n": "12954", "att": "90", "abs": "24", "gpa": "83", "grad": "88", "otg": "69"}, {"p": "CRMYA", "dg": "Ethnicity", "cat": "Black", "y": "2020-21", "n": "26757", "att": "82", "abs": "46", "gpa": "72", "grad": "84", "otg": "49"}, {"p": "CRMYA", "dg": "Ethnicity", "cat": "Hispanic", "y": "2020-21", "n": "42083", "att": "81", "abs": "47", "gpa": "72", "grad": "81", "otg": "51"}, {"p": "CRMYA", "dg": "Ethnicity", "cat": "White", "y": "2020-21", "n": "8483", "att": "87", "abs": "31", "gpa": "80", "grad": "88", "otg": "67"}, {"p": "CRMYA", "dg": "Gender", "cat": "Female", "y": "2020-21", "n": "43136", "att": "85", "abs": "38", "gpa": "78", "grad": "88", "otg": "59"}, {"p": "CRMYA", "dg": "Gender", "cat": "Male", "y": "2020-21", "n": "49528", "att": "82", "abs": "45", "gpa": "72", "grad": "80", "otg": "51"}, {"p": "CRMYA", "dg": "Poverty status", "cat": "Not Poverty", "y": "2020-21", "n": "18585", "att": "87", "abs": "33", "gpa": "77", "grad": "85", "otg": "62"}, {"p": "CRMYA", "dg": "Poverty status", "cat": "Poverty", "y": "2020-21", "n": "74079", "att": "83", "abs": "44", "gpa": "74", "grad": "83", "otg": "53"}, {"p": "CRMYA", "dg": "STH status", "cat": "Not STH", "y": "2020-21", "n": "81793", "att": "84", "abs": "40", "gpa": "75", "grad": "85", "otg": "57"}, {"p": "CRMYA", "dg": "STH status", "cat": "STH", "y": "2020-21", "n": "10871", "att": "78", "abs": "54", "gpa": "70", "grad": "74", "otg": "42"}, {"p": "CRMYA", "dg": "SWD status", "cat": "Not SWD", "y": "2020-21", "n": "74277", "att": "85", "abs": "39", "gpa": "76", "grad": "87", "otg": "58"}, {"p": "CRMYA", "dg": "SWD status", "cat": "SWD", "y": "2020-21", "n": "18387", "att": "77", "abs": "54", "gpa": "68", "grad": "69", "otg": "41"}, {"p": "CRMYA", "dg": "All Students", "cat": "All Students", "y": "2021-22", "n": "89846", "att": "83", "abs": "51", "gpa": "74", "grad": "85", "otg": "62"}, {"p": "CRMYA", "dg": "ELL status", "cat": "ELL", "y": "2021-22", "n": "13899", "att": "82", "abs": "52", "gpa": "71", "grad": "72", "otg": "42"}, {"p": "CRMYA", "dg": "ELL status", "cat": "Not ELL", "y": "2021-22", "n": "75947", "att": "83", "abs": "50", "gpa": "75", "grad": "87", "otg": "66"}, {"p": "CRMYA", "dg": "Ethnicity", "cat": "Asian", "y": "2021-22", "n": "12282", "att": "88", "abs": "35", "gpa": "83", "grad": "89", "otg": "77"}, {"p": "CRMYA", "dg": "Ethnicity", "cat": "Black", "y": "2021-22", "n": "25432", "att": "81", "abs": "55", "gpa": "72", "grad": "85", "otg": "58"}, {"p": "CRMYA", "dg": "Ethnicity", "cat": "Hispanic", "y": "2021-22", "n": "41743", "att": "82", "abs": "54", "gpa": "73", "grad": "82", "otg": "58"}, {"p": "CRMYA", "dg": "Ethnicity", "cat": "White", "y": "2021-22", "n": "8000", "att": "85", "abs": "45", "gpa": "79", "grad": "89", "otg": "73"}, {"p": "CRMYA", "dg": "Gender", "cat": "Female", "y": "2021-22", "n": "42110", "att": "83", "abs": "51", "gpa": "77", "grad": "89", "otg": "66"}, {"p": "CRMYA", "dg": "Gender", "cat": "Male", "y": "2021-22", "n": "47736", "att": "83", "abs": "50", "gpa": "72", "grad": "81", "otg": "60"}, {"p": "CRMYA", "dg": "Poverty status", "cat": "Not Poverty", "y": "2021-22", "n": "18956", "att": "86", "abs": "41", "gpa": "77", "grad": "86", "otg": "70"}, {"p": "CRMYA", "dg": "Poverty status", "cat": "Poverty", "y": "2021-22", "n": "70890", "att": "82", "abs": "53", "gpa": "74", "grad": "84", "otg": "60"}, {"p": "CRMYA", "dg": "STH status", "cat": "Not STH", "y": "2021-22", "n": "79370", "att": "83", "abs": "49", "gpa": "75", "grad": "86", "otg": "64"}, {"p": "CRMYA", "dg": "STH status", "cat": "STH", "y": "2021-22", "n": "10476", "att": "78", "abs": "61", "gpa": "71", "grad": "76", "otg": "50"}, {"p": "CRMYA", "dg": "SWD status", "cat": "Not SWD", "y": "2021-22", "n": "71467", "att": "84", "abs": "48", "gpa": "76", "grad": "87", "otg": "66"}, {"p": "CRMYA", "dg": "SWD status", "cat": "SWD", "y": "2021-22", "n": "18379", "att": "77", "abs": "62", "gpa": "67", "grad": "74", "otg": "47"}, {"p": "CRMYA", "dg": "All Students", "cat": "All Students", "y": "2022-23", "n": "88478", "att": "86", "abs": "41", "gpa": "74", "grad": "85", "otg": "60"}, {"p": "CRMYA", "dg": "ELL status", "cat": "ELL", "y": "2022-23", "n": "13756", "att": "84", "abs": "45", "gpa": "70", "grad": "69", "otg": "34"}, {"p": "CRMYA", "dg": "ELL status", "cat": "Not ELL", "y": "2022-23", "n": "74722", "att": "86", "abs": "40", "gpa": "74", "grad": "87", "otg": "65"}, {"p": "CRMYA", "dg": "Ethnicity", "cat": "Asian", "y": "2022-23", "n": "11452", "att": "91", "abs": "27", "gpa": "82", "grad": "89", "otg": "77"}, {"p": "CRMYA", "dg": "Ethnicity", "cat": "Black", "y": "2022-23", "n": "23730", "att": "86", "abs": "42", "gpa": "71", "grad": "85", "otg": "56"}, {"p": "CRMYA", "dg": "Ethnicity", "cat": "Hispanic", "y": "2022-23", "n": "40657", "att": "85", "abs": "46", "gpa": "72", "grad": "83", "otg": "55"}, {"p": "CRMYA", "dg": "Ethnicity", "cat": "White", "y": "2022-23", "n": "7744", "att": "88", "abs": "36", "gpa": "78", "grad": "88", "otg": "71"}, {"p": "CRMYA", "dg": "Gender", "cat": "Female", "y": "2022-23", "n": "41571", "att": "86", "abs": "41", "gpa": "76", "grad": "88", "otg": "63"}, {"p": "CRMYA", "dg": "Gender", "cat": "Male", "y": "2022-23", "n": "46896", "att": "86", "abs": "41", "gpa": "72", "grad": "82", "otg": "57"}, {"p": "CRMYA", "dg": "Gender", "cat": "Neither male nor female", "y": "2022-23", "n": "11", "att": "86", "abs": "58", "gpa": "76", "grad": "", "otg": "55"}, {"p": "CRMYA", "dg": "Poverty status", "cat": "Not Poverty", "y": "2022-23", "n": "18325", "att": "89", "abs": "31", "gpa": "77", "grad": "87", "otg": "68"}, {"p": "CRMYA", "dg": "Poverty status", "cat": "Poverty", "y": "2022-23", "n": "70153", "att": "85", "abs": "44", "gpa": "73", "grad": "84", "otg": "58"}, {"p": "CRMYA", "dg": "STH status", "cat": "Not STH", "y": "2022-23", "n": "77303", "att": "87", "abs": "40", "gpa": "74", "grad": "86", "otg": "62"}, {"p": "CRMYA", "dg": "STH status", "cat": "STH", "y": "2022-23", "n": "11175", "att": "82", "abs": "52", "gpa": "70", "grad": "77", "otg": "45"}, {"p": "CRMYA", "dg": "SWD status", "cat": "Not SWD", "y": "2022-23", "n": "70393", "att": "87", "abs": "38", "gpa": "75", "grad": "87", "otg": "64"}, {"p": "CRMYA", "dg": "SWD status", "cat": "SWD", "y": "2022-23", "n": "18085", "att": "81", "abs": "53", "gpa": "66", "grad": "75", "otg": "45"}, {"p": "CRMYA", "dg": "All Students", "cat": "All Students", "y": "2023-24", "n": "89474", "att": "86", "abs": "41", "gpa": "74", "grad": "84", "otg": "57"}, {"p": "CRMYA", "dg": "ELL status", "cat": "ELL", "y": "2023-24", "n": "15213", "att": "84", "abs": "45", "gpa": "70", "grad": "59", "otg": "26"}, {"p": "CRMYA", "dg": "ELL status", "cat": "Not ELL", "y": "2023-24", "n": "74261", "att": "87", "abs": "40", "gpa": "75", "grad": "87", "otg": "63"}, {"p": "CRMYA", "dg": "Ethnicity", "cat": "Asian", "y": "2023-24", "n": "11799", "att": "91", "abs": "27", "gpa": "83", "grad": "89", "otg": "75"}, {"p": "CRMYA", "dg": "Ethnicity", "cat": "Black", "y": "2023-24", "n": "24272", "att": "86", "abs": "41", "gpa": "71", "grad": "85", "otg": "52"}, {"p": "CRMYA", "dg": "Ethnicity", "cat": "Hispanic", "y": "2023-24", "n": "42557", "att": "85", "abs": "45", "gpa": "72", "grad": "81", "otg": "51"}, {"p": "CRMYA", "dg": "Ethnicity", "cat": "White", "y": "2023-24", "n": "7954", "att": "88", "abs": "35", "gpa": "78", "grad": "88", "otg": "68"}, {"p": "CRMYA", "dg": "Gender", "cat": "Female", "y": "2023-24", "n": "42124", "att": "87", "abs": "41", "gpa": "76", "grad": "87", "otg": "59"}, {"p": "CRMYA", "dg": "Gender", "cat": "Male", "y": "2023-24", "n": "47330", "att": "86", "abs": "40", "gpa": "72", "grad": "82", "otg": "54"}, {"p": "CRMYA", "dg": "Gender", "cat": "Neither male nor female", "y": "2023-24", "n": "20", "att": "81", "abs": "67", "gpa": "74", "grad": "", "otg": "47"}, {"p": "CRMYA", "dg": "Poverty status", "cat": "Not Poverty", "y": "2023-24", "n": "16146", "att": "90", "abs": "30", "gpa": "77", "grad": "87", "otg": "67"}, {"p": "CRMYA", "dg": "Poverty status", "cat": "Poverty", "y": "2023-24", "n": "73328", "att": "86", "abs": "43", "gpa": "73", "grad": "84", "otg": "54"}, {"p": "CRMYA", "dg": "STH status", "cat": "Not STH", "y": "2023-24", "n": "76110", "att": "87", "abs": "39", "gpa": "74", "grad": "85", "otg": "59"}, {"p": "CRMYA", "dg": "STH status", "cat": "STH", "y": "2023-24", "n": "13364", "att": "82", "abs": "51", "gpa": "71", "grad": "76", "otg": "40"}, {"p": "CRMYA", "dg": "SWD status", "cat": "Not SWD", "y": "2023-24", "n": "71533", "att": "87", "abs": "38", "gpa": "76", "grad": "87", "otg": "60"}, {"p": "CRMYA", "dg": "SWD status", "cat": "SWD", "y": "2023-24", "n": "17941", "att": "81", "abs": "52", "gpa": "67", "grad": "75", "otg": "43"}, {"p": "CRMYA", "dg": "All Students", "cat": "All Students", "y": "2024-25", "n": "91037", "att": "86", "abs": "40", "gpa": "74", "grad": "84", "otg": "54"}, {"p": "CRMYA", "dg": "ELL status", "cat": "ELL", "y": "2024-25", "n": "16886", "att": "84", "abs": "45", "gpa": "69", "grad": "62", "otg": "25"}, {"p": "CRMYA", "dg": "ELL status", "cat": "Not ELL", "y": "2024-25", "n": "74151", "att": "87", "abs": "38", "gpa": "75", "grad": "87", "otg": "60"}, {"p": "CRMYA", "dg": "Ethnicity", "cat": "Asian", "y": "2024-25", "n": "11982", "att": "91", "abs": "28", "gpa": "82", "grad": "91", "otg": "73"}, {"p": "CRMYA", "dg": "Ethnicity", "cat": "Black", "y": "2024-25", "n": "24521", "att": "86", "abs": "41", "gpa": "71", "grad": "84", "otg": "48"}, {"p": "CRMYA", "dg": "Ethnicity", "cat": "Hispanic", "y": "2024-25", "n": "43526", "att": "85", "abs": "43", "gpa": "72", "grad": "81", "otg": "49"}, {"p": "CRMYA", "dg": "Ethnicity", "cat": "White", "y": "2024-25", "n": "8150", "att": "88", "abs": "36", "gpa": "79", "grad": "86", "otg": "66"}, {"p": "CRMYA", "dg": "Gender", "cat": "Female", "y": "2024-25", "n": "42986", "att": "87", "abs": "40", "gpa": "76", "grad": "87", "otg": "56"}, {"p": "CRMYA", "dg": "Gender", "cat": "Male", "y": "2024-25", "n": "48032", "att": "86", "abs": "39", "gpa": "72", "grad": "81", "otg": "52"}, {"p": "CRMYA", "dg": "Gender", "cat": "Neither male nor female", "y": "2024-25", "n": "19", "att": "76", "abs": "58", "gpa": "65", "grad": "", "otg": "47"}, {"p": "CRMYA", "dg": "Poverty status", "cat": "Not Poverty", "y": "2024-25", "n": "16089", "att": "90", "abs": "29", "gpa": "77", "grad": "87", "otg": "65"}, {"p": "CRMYA", "dg": "Poverty status", "cat": "Poverty", "y": "2024-25", "n": "74948", "att": "86", "abs": "42", "gpa": "73", "grad": "83", "otg": "51"}, {"p": "CRMYA", "dg": "STH status", "cat": "Not STH", "y": "2024-25", "n": "75566", "att": "87", "abs": "38", "gpa": "75", "grad": "85", "otg": "57"}, {"p": "CRMYA", "dg": "STH status", "cat": "STH", "y": "2024-25", "n": "15471", "att": "82", "abs": "51", "gpa": "70", "grad": "76", "otg": "37"}, {"p": "CRMYA", "dg": "SWD status", "cat": "Not SWD", "y": "2024-25", "n": "72800", "att": "87", "abs": "37", "gpa": "76", "grad": "86", "otg": "57"}, {"p": "CRMYA", "dg": "SWD status", "cat": "SWD", "y": "2024-25", "n": "18237", "att": "82", "abs": "50", "gpa": "67", "grad": "74", "otg": "42"}, {"p": "Computer Science", "dg": "All Students", "cat": "All Students", "y": "2018-19", "n": "48425", "att": "88", "abs": "34", "gpa": "74", "grad": "81", "otg": "51"}, {"p": "Computer Science", "dg": "ELL status", "cat": "ELL", "y": "2018-19", "n": "7106", "att": "83", "abs": "45", "gpa": "63", "grad": "44", "otg": "19"}, {"p": "Computer Science", "dg": "ELL status", "cat": "Not ELL", "y": "2018-19", "n": "41319", "att": "89", "abs": "32", "gpa": "76", "grad": "85", "otg": "56"}, {"p": "Computer Science", "dg": "Ethnicity", "cat": "Asian", "y": "2018-19", "n": "7660", "att": "92", "abs": "22", "gpa": "81", "grad": "86", "otg": "68"}, {"p": "Computer Science", "dg": "Ethnicity", "cat": "Black", "y": "2018-19", "n": "13631", "att": "87", "abs": "36", "gpa": "71", "grad": "82", "otg": "44"}, {"p": "Computer Science", "dg": "Ethnicity", "cat": "Hispanic", "y": "2018-19", "n": "19311", "att": "86", "abs": "40", "gpa": "71", "grad": "75", "otg": "43"}, {"p": "Computer Science", "dg": "Ethnicity", "cat": "White", "y": "2018-19", "n": "6541", "att": "91", "abs": "25", "gpa": "79", "grad": "88", "otg": "66"}, {"p": "Computer Science", "dg": "Gender", "cat": "Female", "y": "2018-19", "n": "22655", "att": "89", "abs": "33", "gpa": "78", "grad": "86", "otg": "56"}, {"p": "Computer Science", "dg": "Gender", "cat": "Male", "y": "2018-19", "n": "25770", "att": "87", "abs": "35", "gpa": "70", "grad": "76", "otg": "46"}, {"p": "Computer Science", "dg": "Poverty status", "cat": "Not Poverty", "y": "2018-19", "n": "11789", "att": "91", "abs": "25", "gpa": "77", "grad": "82", "otg": "60"}, {"p": "Computer Science", "dg": "Poverty status", "cat": "Poverty", "y": "2018-19", "n": "36636", "att": "87", "abs": "36", "gpa": "73", "grad": "80", "otg": "48"}, {"p": "Computer Science", "dg": "STH status", "cat": "Not STH", "y": "2018-19", "n": "43081", "att": "88", "abs": "32", "gpa": "74", "grad": "83", "otg": "53"}, {"p": "Computer Science", "dg": "STH status", "cat": "STH", "y": "2018-19", "n": "5344", "att": "82", "abs": "48", "gpa": "69", "grad": "65", "otg": "34"}, {"p": "Computer Science", "dg": "SWD status", "cat": "Not SWD", "y": "2018-19", "n": "38892", "att": "89", "abs": "31", "gpa": "77", "grad": "84", "otg": "56"}, {"p": "Computer Science", "dg": "SWD status", "cat": "SWD", "y": "2018-19", "n": "9533", "att": "83", "abs": "47", "gpa": "59", "grad": "64", "otg": "29"}, {"p": "Computer Science", "dg": "All Students", "cat": "All Students", "y": "2019-20", "n": "47723", "att": "89", "abs": "32", "gpa": "76", "grad": "83", "otg": "13"}, {"p": "Computer Science", "dg": "ELL status", "cat": "ELL", "y": "2019-20", "n": "6627", "att": "83", "abs": "43", "gpa": "66", "grad": "46", "otg": "9"}, {"p": "Computer Science", "dg": "ELL status", "cat": "Not ELL", "y": "2019-20", "n": "41096", "att": "90", "abs": "30", "gpa": "78", "grad": "88", "otg": "14"}, {"p": "Computer Science", "dg": "Ethnicity", "cat": "Asian", "y": "2019-20", "n": "7557", "att": "92", "abs": "22", "gpa": "83", "grad": "89", "otg": "15"}, {"p": "Computer Science", "dg": "Ethnicity", "cat": "Black", "y": "2019-20", "n": "13089", "att": "88", "abs": "35", "gpa": "72", "grad": "85", "otg": "10"}, {"p": "Computer Science", "dg": "Ethnicity", "cat": "Hispanic", "y": "2019-20", "n": "19358", "att": "87", "abs": "37", "gpa": "74", "grad": "78", "otg": "11"}, {"p": "Computer Science", "dg": "Ethnicity", "cat": "White", "y": "2019-20", "n": "6430", "att": "92", "abs": "22", "gpa": "81", "grad": "91", "otg": "22"}, {"p": "Computer Science", "dg": "Gender", "cat": "Female", "y": "2019-20", "n": "22295", "att": "89", "abs": "31", "gpa": "80", "grad": "88", "otg": "15"}, {"p": "Computer Science", "dg": "Gender", "cat": "Male", "y": "2019-20", "n": "25428", "att": "88", "abs": "32", "gpa": "73", "grad": "79", "otg": "12"}, {"p": "Computer Science", "dg": "Poverty status", "cat": "Not Poverty", "y": "2019-20", "n": "11265", "att": "92", "abs": "22", "gpa": "80", "grad": "86", "otg": "20"}, {"p": "Computer Science", "dg": "Poverty status", "cat": "Poverty", "y": "2019-20", "n": "36458", "att": "88", "abs": "35", "gpa": "75", "grad": "83", "otg": "11"}, {"p": "Computer Science", "dg": "STH status", "cat": "Not STH", "y": "2019-20", "n": "42566", "att": "89", "abs": "30", "gpa": "77", "grad": "85", "otg": "14"}, {"p": "Computer Science", "dg": "STH status", "cat": "STH", "y": "2019-20", "n": "5157", "att": "83", "abs": "46", "gpa": "71", "grad": "69", "otg": "8"}, {"p": "Computer Science", "dg": "SWD status", "cat": "Not SWD", "y": "2019-20", "n": "38212", "att": "90", "abs": "29", "gpa": "80", "grad": "86", "otg": "14"}, {"p": "Computer Science", "dg": "SWD status", "cat": "SWD", "y": "2019-20", "n": "9511", "att": "84", "abs": "44", "gpa": "62", "grad": "67", "otg": "9"}, {"p": "Computer Science", "dg": "All Students", "cat": "All Students", "y": "2020-21", "n": "47623", "att": "86", "abs": "36", "gpa": "76", "grad": "86", "otg": "62"}, {"p": "Computer Science", "dg": "ELL status", "cat": "ELL", "y": "2020-21", "n": "6733", "att": "78", "abs": "52", "gpa": "65", "grad": "64", "otg": "41"}, {"p": "Computer Science", "dg": "ELL status", "cat": "Not ELL", "y": "2020-21", "n": "40890", "att": "87", "abs": "34", "gpa": "78", "grad": "90", "otg": "65"}, {"p": "Computer Science", "dg": "Ethnicity", "cat": "Asian", "y": "2020-21", "n": "7681", "att": "91", "abs": "22", "gpa": "84", "grad": "91", "otg": "77"}, {"p": "Computer Science", "dg": "Ethnicity", "cat": "Black", "y": "2020-21", "n": "12658", "att": "84", "abs": "42", "gpa": "73", "grad": "87", "otg": "58"}, {"p": "Computer Science", "dg": "Ethnicity", "cat": "Hispanic", "y": "2020-21", "n": "19364", "att": "82", "abs": "43", "gpa": "73", "grad": "82", "otg": "54"}, {"p": "Computer Science", "dg": "Ethnicity", "cat": "White", "y": "2020-21", "n": "6429", "att": "91", "abs": "23", "gpa": "82", "grad": "92", "otg": "76"}, {"p": "Computer Science", "dg": "Gender", "cat": "Female", "y": "2020-21", "n": "22222", "att": "88", "abs": "31", "gpa": "80", "grad": "91", "otg": "67"}, {"p": "Computer Science", "dg": "Gender", "cat": "Male", "y": "2020-21", "n": "25401", "att": "83", "abs": "41", "gpa": "73", "grad": "82", "otg": "58"}, {"p": "Computer Science", "dg": "Poverty status", "cat": "Not Poverty", "y": "2020-21", "n": "10955", "att": "90", "abs": "26", "gpa": "81", "grad": "89", "otg": "72"}, {"p": "Computer Science", "dg": "Poverty status", "cat": "Poverty", "y": "2020-21", "n": "36668", "att": "84", "abs": "39", "gpa": "75", "grad": "86", "otg": "59"}, {"p": "Computer Science", "dg": "STH status", "cat": "Not STH", "y": "2020-21", "n": "42753", "att": "86", "abs": "35", "gpa": "77", "grad": "88", "otg": "64"}, {"p": "Computer Science", "dg": "STH status", "cat": "STH", "y": "2020-21", "n": "4870", "att": "79", "abs": "51", "gpa": "71", "grad": "76", "otg": "47"}, {"p": "Computer Science", "dg": "SWD status", "cat": "Not SWD", "y": "2020-21", "n": "37601", "att": "87", "abs": "33", "gpa": "80", "grad": "89", "otg": "66"}, {"p": "Computer Science", "dg": "SWD status", "cat": "SWD", "y": "2020-21", "n": "10022", "att": "80", "abs": "49", "gpa": "62", "grad": "73", "otg": "45"}, {"p": "Computer Science", "dg": "All Students", "cat": "All Students", "y": "2021-22", "n": "46689", "att": "84", "abs": "48", "gpa": "76", "grad": "87", "otg": "68"}, {"p": "Computer Science", "dg": "ELL status", "cat": "ELL", "y": "2021-22", "n": "6740", "att": "82", "abs": "52", "gpa": "68", "grad": "69", "otg": "47"}, {"p": "Computer Science", "dg": "ELL status", "cat": "Not ELL", "y": "2021-22", "n": "39949", "att": "85", "abs": "47", "gpa": "78", "grad": "91", "otg": "71"}, {"p": "Computer Science", "dg": "Ethnicity", "cat": "Asian", "y": "2021-22", "n": "7684", "att": "89", "abs": "32", "gpa": "84", "grad": "92", "otg": "83"}, {"p": "Computer Science", "dg": "Ethnicity", "cat": "Black", "y": "2021-22", "n": "12143", "att": "82", "abs": "53", "gpa": "72", "grad": "89", "otg": "62"}, {"p": "Computer Science", "dg": "Ethnicity", "cat": "Hispanic", "y": "2021-22", "n": "19235", "att": "82", "abs": "54", "gpa": "73", "grad": "83", "otg": "61"}, {"p": "Computer Science", "dg": "Ethnicity", "cat": "White", "y": "2021-22", "n": "6147", "att": "88", "abs": "37", "gpa": "82", "grad": "92", "otg": "79"}, {"p": "Computer Science", "dg": "Gender", "cat": "Female", "y": "2021-22", "n": "21773", "att": "85", "abs": "48", "gpa": "79", "grad": "91", "otg": "72"}, {"p": "Computer Science", "dg": "Gender", "cat": "Male", "y": "2021-22", "n": "24916", "att": "84", "abs": "47", "gpa": "73", "grad": "84", "otg": "64"}, {"p": "Computer Science", "dg": "Poverty status", "cat": "Not Poverty", "y": "2021-22", "n": "11135", "att": "88", "abs": "38", "gpa": "81", "grad": "90", "otg": "75"}, {"p": "Computer Science", "dg": "Poverty status", "cat": "Poverty", "y": "2021-22", "n": "35554", "att": "83", "abs": "51", "gpa": "75", "grad": "87", "otg": "65"}, {"p": "Computer Science", "dg": "STH status", "cat": "Not STH", "y": "2021-22", "n": "42144", "att": "85", "abs": "46", "gpa": "77", "grad": "89", "otg": "69"}, {"p": "Computer Science", "dg": "STH status", "cat": "STH", "y": "2021-22", "n": "4545", "att": "79", "abs": "60", "gpa": "71", "grad": "76", "otg": "52"}, {"p": "Computer Science", "dg": "SWD status", "cat": "Not SWD", "y": "2021-22", "n": "36692", "att": "86", "abs": "44", "gpa": "80", "grad": "89", "otg": "72"}, {"p": "Computer Science", "dg": "SWD status", "cat": "SWD", "y": "2021-22", "n": "9997", "att": "78", "abs": "61", "gpa": "62", "grad": "78", "otg": "51"}, {"p": "Computer Science", "dg": "All Students", "cat": "All Students", "y": "2022-23", "n": "46288", "att": "87", "abs": "39", "gpa": "76", "grad": "88", "otg": "66"}, {"p": "Computer Science", "dg": "ELL status", "cat": "ELL", "y": "2022-23", "n": "6813", "att": "84", "abs": "47", "gpa": "67", "grad": "67", "otg": "38"}, {"p": "Computer Science", "dg": "ELL status", "cat": "Not ELL", "y": "2022-23", "n": "39475", "att": "87", "abs": "38", "gpa": "77", "grad": "91", "otg": "70"}, {"p": "Computer Science", "dg": "Ethnicity", "cat": "Asian", "y": "2022-23", "n": "7457", "att": "91", "abs": "25", "gpa": "83", "grad": "93", "otg": "81"}, {"p": "Computer Science", "dg": "Ethnicity", "cat": "Black", "y": "2022-23", "n": "11359", "att": "86", "abs": "43", "gpa": "72", "grad": "87", "otg": "60"}, {"p": "Computer Science", "dg": "Ethnicity", "cat": "Hispanic", "y": "2022-23", "n": "18774", "att": "85", "abs": "45", "gpa": "73", "grad": "84", "otg": "59"}, {"p": "Computer Science", "dg": "Ethnicity", "cat": "White", "y": "2022-23", "n": "5821", "att": "90", "abs": "31", "gpa": "82", "grad": "92", "otg": "77"}, {"p": "Computer Science", "dg": "Gender", "cat": "Female", "y": "2022-23", "n": "21639", "att": "87", "abs": "39", "gpa": "79", "grad": "91", "otg": "69"}, {"p": "Computer Science", "dg": "Gender", "cat": "Male", "y": "2022-23", "n": "24640", "att": "87", "abs": "39", "gpa": "73", "grad": "84", "otg": "63"}, {"p": "Computer Science", "dg": "Gender", "cat": "Neither male nor female", "y": "2022-23", "n": "9", "att": "76", "abs": "75", "gpa": "77", "grad": "", "otg": "56"}, {"p": "Computer Science", "dg": "Poverty status", "cat": "Not Poverty", "y": "2022-23", "n": "11073", "att": "90", "abs": "29", "gpa": "80", "grad": "90", "otg": "75"}, {"p": "Computer Science", "dg": "Poverty status", "cat": "Poverty", "y": "2022-23", "n": "35215", "att": "86", "abs": "42", "gpa": "74", "grad": "87", "otg": "63"}, {"p": "Computer Science", "dg": "STH status", "cat": "Not STH", "y": "2022-23", "n": "41403", "att": "87", "abs": "38", "gpa": "76", "grad": "89", "otg": "67"}, {"p": "Computer Science", "dg": "STH status", "cat": "STH", "y": "2022-23", "n": "4885", "att": "82", "abs": "52", "gpa": "72", "grad": "75", "otg": "49"}, {"p": "Computer Science", "dg": "SWD status", "cat": "Not SWD", "y": "2022-23", "n": "36440", "att": "88", "abs": "36", "gpa": "79", "grad": "89", "otg": "69"}, {"p": "Computer Science", "dg": "SWD status", "cat": "SWD", "y": "2022-23", "n": "9848", "att": "82", "abs": "51", "gpa": "62", "grad": "80", "otg": "49"}, {"p": "Computer Science", "dg": "All Students", "cat": "All Students", "y": "2023-24", "n": "47123", "att": "87", "abs": "37", "gpa": "75", "grad": "87", "otg": "62"}, {"p": "Computer Science", "dg": "ELL status", "cat": "ELL", "y": "2023-24", "n": "7553", "att": "84", "abs": "46", "gpa": "66", "grad": "60", "otg": "27"}, {"p": "Computer Science", "dg": "ELL status", "cat": "Not ELL", "y": "2023-24", "n": "39570", "att": "88", "abs": "36", "gpa": "77", "grad": "90", "otg": "68"}, {"p": "Computer Science", "dg": "Ethnicity", "cat": "Asian", "y": "2023-24", "n": "7844", "att": "92", "abs": "25", "gpa": "83", "grad": "93", "otg": "79"}, {"p": "Computer Science", "dg": "Ethnicity", "cat": "Black", "y": "2023-24", "n": "11770", "att": "87", "abs": "39", "gpa": "72", "grad": "88", "otg": "55"}, {"p": "Computer Science", "dg": "Ethnicity", "cat": "Hispanic", "y": "2023-24", "n": "20082", "att": "85", "abs": "44", "gpa": "72", "grad": "83", "otg": "54"}, {"p": "Computer Science", "dg": "Ethnicity", "cat": "White", "y": "2023-24", "n": "5840", "att": "90", "abs": "30", "gpa": "81", "grad": "92", "otg": "75"}, {"p": "Computer Science", "dg": "Gender", "cat": "Female", "y": "2023-24", "n": "22027", "att": "88", "abs": "38", "gpa": "78", "grad": "90", "otg": "65"}, {"p": "Computer Science", "dg": "Gender", "cat": "Male", "y": "2023-24", "n": "25078", "att": "87", "abs": "37", "gpa": "73", "grad": "84", "otg": "59"}, {"p": "Computer Science", "dg": "Gender", "cat": "Neither male nor female", "y": "2023-24", "n": "18", "att": "86", "abs": "58", "gpa": "74", "grad": "", "otg": "41"}, {"p": "Computer Science", "dg": "Poverty status", "cat": "Not Poverty", "y": "2023-24", "n": "10274", "att": "91", "abs": "26", "gpa": "81", "grad": "92", "otg": "74"}, {"p": "Computer Science", "dg": "Poverty status", "cat": "Poverty", "y": "2023-24", "n": "36849", "att": "87", "abs": "40", "gpa": "74", "grad": "86", "otg": "58"}, {"p": "Computer Science", "dg": "STH status", "cat": "Not STH", "y": "2023-24", "n": "41038", "att": "88", "abs": "36", "gpa": "76", "grad": "88", "otg": "65"}, {"p": "Computer Science", "dg": "STH status", "cat": "STH", "y": "2023-24", "n": "6085", "att": "83", "abs": "50", "gpa": "71", "grad": "77", "otg": "41"}, {"p": "Computer Science", "dg": "SWD status", "cat": "Not SWD", "y": "2023-24", "n": "37213", "att": "89", "abs": "34", "gpa": "79", "grad": "90", "otg": "65"}, {"p": "Computer Science", "dg": "SWD status", "cat": "SWD", "y": "2023-24", "n": "9910", "att": "83", "abs": "50", "gpa": "62", "grad": "77", "otg": "46"}, {"p": "Computer Science", "dg": "All Students", "cat": "All Students", "y": "2024-25", "n": "47533", "att": "87", "abs": "36", "gpa": "75", "grad": "86", "otg": "60"}, {"p": "Computer Science", "dg": "ELL status", "cat": "ELL", "y": "2024-25", "n": "8247", "att": "84", "abs": "44", "gpa": "66", "grad": "60", "otg": "28"}, {"p": "Computer Science", "dg": "ELL status", "cat": "Not ELL", "y": "2024-25", "n": "39286", "att": "88", "abs": "35", "gpa": "77", "grad": "90", "otg": "66"}, {"p": "Computer Science", "dg": "Ethnicity", "cat": "Asian", "y": "2024-25", "n": "7873", "att": "91", "abs": "25", "gpa": "83", "grad": "92", "otg": "78"}, {"p": "Computer Science", "dg": "Ethnicity", "cat": "Black", "y": "2024-25", "n": "11764", "att": "87", "abs": "38", "gpa": "72", "grad": "88", "otg": "53"}, {"p": "Computer Science", "dg": "Ethnicity", "cat": "Hispanic", "y": "2024-25", "n": "20604", "att": "86", "abs": "42", "gpa": "73", "grad": "82", "otg": "53"}, {"p": "Computer Science", "dg": "Ethnicity", "cat": "White", "y": "2024-25", "n": "5628", "att": "89", "abs": "30", "gpa": "80", "grad": "91", "otg": "73"}, {"p": "Computer Science", "dg": "Gender", "cat": "Female", "y": "2024-25", "n": "22117", "att": "88", "abs": "37", "gpa": "78", "grad": "89", "otg": "62"}, {"p": "Computer Science", "dg": "Gender", "cat": "Male", "y": "2024-25", "n": "25399", "att": "87", "abs": "36", "gpa": "73", "grad": "84", "otg": "58"}, {"p": "Computer Science", "dg": "Gender", "cat": "Neither male nor female", "y": "2024-25", "n": "17", "att": "76", "abs": "58", "gpa": "65", "grad": "", "otg": "31"}, {"p": "Computer Science", "dg": "Poverty status", "cat": "Not Poverty", "y": "2024-25", "n": "10005", "att": "91", "abs": "25", "gpa": "80", "grad": "89", "otg": "72"}, {"p": "Computer Science", "dg": "Poverty status", "cat": "Poverty", "y": "2024-25", "n": "37528", "att": "87", "abs": "39", "gpa": "74", "grad": "85", "otg": "57"}, {"p": "Computer Science", "dg": "STH status", "cat": "Not STH", "y": "2024-25", "n": "40415", "att": "88", "abs": "34", "gpa": "76", "grad": "88", "otg": "64"}, {"p": "Computer Science", "dg": "STH status", "cat": "STH", "y": "2024-25", "n": "7118", "att": "83", "abs": "48", "gpa": "70", "grad": "76", "otg": "40"}, {"p": "Computer Science", "dg": "SWD status", "cat": "Not SWD", "y": "2024-25", "n": "37440", "att": "89", "abs": "34", "gpa": "78", "grad": "88", "otg": "63"}, {"p": "Computer Science", "dg": "SWD status", "cat": "SWD", "y": "2024-25", "n": "10093", "att": "83", "abs": "47", "gpa": "63", "grad": "78", "otg": "47"}, {"p": "Early College", "dg": "All Students", "cat": "All Students", "y": "2018-19", "n": "10597", "att": "91", "abs": "26", "gpa": "80", "grad": "86", "otg": "57"}, {"p": "Early College", "dg": "ELL status", "cat": "ELL", "y": "2018-19", "n": "1132", "att": "87", "abs": "40", "gpa": "71", "grad": "45", "otg": "20"}, {"p": "Early College", "dg": "ELL status", "cat": "Not ELL", "y": "2018-19", "n": "9465", "att": "92", "abs": "24", "gpa": "81", "grad": "89", "otg": "61"}, {"p": "Early College", "dg": "Ethnicity", "cat": "Asian", "y": "2018-19", "n": "1636", "att": "93", "abs": "19", "gpa": "84", "grad": "86", "otg": "67"}, {"p": "Early College", "dg": "Ethnicity", "cat": "Black", "y": "2018-19", "n": "3327", "att": "92", "abs": "24", "gpa": "79", "grad": "90", "otg": "57"}, {"p": "Early College", "dg": "Ethnicity", "cat": "Hispanic", "y": "2018-19", "n": "4235", "att": "89", "abs": "31", "gpa": "77", "grad": "80", "otg": "46"}, {"p": "Early College", "dg": "Ethnicity", "cat": "White", "y": "2018-19", "n": "1021", "att": "94", "abs": "17", "gpa": "87", "grad": "94", "otg": "77"}, {"p": "Early College", "dg": "Gender", "cat": "Female", "y": "2018-19", "n": "5647", "att": "92", "abs": "23", "gpa": "83", "grad": "91", "otg": "62"}, {"p": "Early College", "dg": "Gender", "cat": "Male", "y": "2018-19", "n": "4950", "att": "90", "abs": "29", "gpa": "76", "grad": "80", "otg": "50"}, {"p": "Early College", "dg": "Poverty status", "cat": "Not Poverty", "y": "2018-19", "n": "3100", "att": "94", "abs": "18", "gpa": "83", "grad": "87", "otg": "66"}, {"p": "Early College", "dg": "Poverty status", "cat": "Poverty", "y": "2018-19", "n": "7497", "att": "90", "abs": "29", "gpa": "78", "grad": "85", "otg": "52"}, {"p": "Early College", "dg": "STH status", "cat": "Not STH", "y": "2018-19", "n": "9685", "att": "92", "abs": "24", "gpa": "80", "grad": "87", "otg": "58"}, {"p": "Early College", "dg": "STH status", "cat": "STH", "y": "2018-19", "n": "912", "att": "85", "abs": "43", "gpa": "75", "grad": "74", "otg": "38"}, {"p": "Early College", "dg": "SWD status", "cat": "Not SWD", "y": "2018-19", "n": "9027", "att": "92", "abs": "23", "gpa": "81", "grad": "88", "otg": "60"}, {"p": "Early College", "dg": "SWD status", "cat": "SWD", "y": "2018-19", "n": "1570", "att": "85", "abs": "40", "gpa": "70", "grad": "68", "otg": "36"}, {"p": "Early College", "dg": "All Students", "cat": "All Students", "y": "2019-20", "n": "10584", "att": "91", "abs": "26", "gpa": "82", "grad": "88", "otg": "10"}, {"p": "Early College", "dg": "ELL status", "cat": "ELL", "y": "2019-20", "n": "995", "att": "87", "abs": "42", "gpa": "74", "grad": "45", "otg": "2"}, {"p": "Early College", "dg": "ELL status", "cat": "Not ELL", "y": "2019-20", "n": "9589", "att": "92", "abs": "24", "gpa": "83", "grad": "91", "otg": "11"}, {"p": "Early College", "dg": "Ethnicity", "cat": "Asian", "y": "2019-20", "n": "1589", "att": "93", "abs": "21", "gpa": "86", "grad": "85", "otg": "20"}, {"p": "Early College", "dg": "Ethnicity", "cat": "Black", "y": "2019-20", "n": "3343", "att": "91", "abs": "26", "gpa": "81", "grad": "92", "otg": "5"}, {"p": "Early College", "dg": "Ethnicity", "cat": "Hispanic", "y": "2019-20", "n": "4335", "att": "90", "abs": "30", "gpa": "79", "grad": "84", "otg": "7"}, {"p": "Early College", "dg": "Ethnicity", "cat": "White", "y": "2019-20", "n": "987", "att": "94", "abs": "16", "gpa": "87", "grad": "95", "otg": "24"}, {"p": "Early College", "dg": "Gender", "cat": "Female", "y": "2019-20", "n": "5687", "att": "92", "abs": "24", "gpa": "84", "grad": "93", "otg": "11"}, {"p": "Early College", "dg": "Gender", "cat": "Male", "y": "2019-20", "n": "4897", "att": "91", "abs": "29", "gpa": "79", "grad": "81", "otg": "8"}, {"p": "Early College", "dg": "Poverty status", "cat": "Not Poverty", "y": "2019-20", "n": "2925", "att": "94", "abs": "18", "gpa": "85", "grad": "90", "otg": "18"}, {"p": "Early College", "dg": "Poverty status", "cat": "Poverty", "y": "2019-20", "n": "7659", "att": "90", "abs": "29", "gpa": "80", "grad": "87", "otg": "7"}, {"p": "Early College", "dg": "STH status", "cat": "Not STH", "y": "2019-20", "n": "9697", "att": "92", "abs": "25", "gpa": "82", "grad": "89", "otg": "11"}, {"p": "Early College", "dg": "STH status", "cat": "STH", "y": "2019-20", "n": "887", "att": "85", "abs": "44", "gpa": "77", "grad": "74", "otg": "3"}, {"p": "Early College", "dg": "SWD status", "cat": "Not SWD", "y": "2019-20", "n": "8953", "att": "92", "abs": "24", "gpa": "83", "grad": "90", "otg": "11"}, {"p": "Early College", "dg": "SWD status", "cat": "SWD", "y": "2019-20", "n": "1631", "att": "86", "abs": "40", "gpa": "74", "grad": "71", "otg": "4"}, {"p": "Early College", "dg": "All Students", "cat": "All Students", "y": "2020-21", "n": "10669", "att": "90", "abs": "29", "gpa": "82", "grad": "88", "otg": "54"}, {"p": "Early College", "dg": "ELL status", "cat": "ELL", "y": "2020-21", "n": "1062", "att": "86", "abs": "38", "gpa": "73", "grad": "61", "otg": "33"}, {"p": "Early College", "dg": "ELL status", "cat": "Not ELL", "y": "2020-21", "n": "9607", "att": "90", "abs": "29", "gpa": "83", "grad": "91", "otg": "56"}, {"p": "Early College", "dg": "Ethnicity", "cat": "Asian", "y": "2020-21", "n": "1560", "att": "92", "abs": "23", "gpa": "87", "grad": "88", "otg": "66"}, {"p": "Early College", "dg": "Ethnicity", "cat": "Black", "y": "2020-21", "n": "3343", "att": "89", "abs": "28", "gpa": "81", "grad": "91", "otg": "50"}, {"p": "Early College", "dg": "Ethnicity", "cat": "Hispanic", "y": "2020-21", "n": "4404", "att": "88", "abs": "35", "gpa": "79", "grad": "86", "otg": "49"}, {"p": "Early College", "dg": "Ethnicity", "cat": "White", "y": "2020-21", "n": "977", "att": "93", "abs": "21", "gpa": "88", "grad": "92", "otg": "71"}, {"p": "Early College", "dg": "Gender", "cat": "Female", "y": "2020-21", "n": "5681", "att": "91", "abs": "25", "gpa": "85", "grad": "94", "otg": "57"}, {"p": "Early College", "dg": "Gender", "cat": "Male", "y": "2020-21", "n": "4988", "att": "88", "abs": "34", "gpa": "78", "grad": "82", "otg": "51"}, {"p": "Early College", "dg": "Poverty status", "cat": "Not Poverty", "y": "2020-21", "n": "3008", "att": "92", "abs": "24", "gpa": "85", "grad": "88", "otg": "61"}, {"p": "Early College", "dg": "Poverty status", "cat": "Poverty", "y": "2020-21", "n": "7661", "att": "89", "abs": "32", "gpa": "80", "grad": "88", "otg": "51"}, {"p": "Early College", "dg": "STH status", "cat": "Not STH", "y": "2020-21", "n": "9753", "att": "90", "abs": "29", "gpa": "82", "grad": "89", "otg": "56"}, {"p": "Early College", "dg": "STH status", "cat": "STH", "y": "2020-21", "n": "916", "att": "84", "abs": "40", "gpa": "76", "grad": "81", "otg": "40"}, {"p": "Early College", "dg": "SWD status", "cat": "Not SWD", "y": "2020-21", "n": "8940", "att": "90", "abs": "27", "gpa": "83", "grad": "90", "otg": "57"}, {"p": "Early College", "dg": "SWD status", "cat": "SWD", "y": "2020-21", "n": "1729", "att": "84", "abs": "42", "gpa": "74", "grad": "77", "otg": "42"}, {"p": "Early College", "dg": "All Students", "cat": "All Students", "y": "2021-22", "n": "10410", "att": "89", "abs": "35", "gpa": "81", "grad": "91", "otg": "69"}, {"p": "Early College", "dg": "ELL status", "cat": "ELL", "y": "2021-22", "n": "1130", "att": "88", "abs": "40", "gpa": "75", "grad": "73", "otg": "50"}, {"p": "Early College", "dg": "ELL status", "cat": "Not ELL", "y": "2021-22", "n": "9280", "att": "90", "abs": "34", "gpa": "82", "grad": "93", "otg": "72"}, {"p": "Early College", "dg": "Ethnicity", "cat": "Asian", "y": "2021-22", "n": "1471", "att": "91", "abs": "31", "gpa": "85", "grad": "87", "otg": "75"}, {"p": "Early College", "dg": "Ethnicity", "cat": "Black", "y": "2021-22", "n": "3240", "att": "91", "abs": "29", "gpa": "80", "grad": "94", "otg": "70"}, {"p": "Early College", "dg": "Ethnicity", "cat": "Hispanic", "y": "2021-22", "n": "4410", "att": "87", "abs": "42", "gpa": "79", "grad": "90", "otg": "63"}, {"p": "Early College", "dg": "Ethnicity", "cat": "White", "y": "2021-22", "n": "899", "att": "90", "abs": "34", "gpa": "87", "grad": "96", "otg": "82"}, {"p": "Early College", "dg": "Gender", "cat": "Female", "y": "2021-22", "n": "5521", "att": "90", "abs": "34", "gpa": "83", "grad": "95", "otg": "71"}, {"p": "Early College", "dg": "Gender", "cat": "Male", "y": "2021-22", "n": "4889", "att": "89", "abs": "36", "gpa": "79", "grad": "87", "otg": "67"}, {"p": "Early College", "dg": "Poverty status", "cat": "Not Poverty", "y": "2021-22", "n": "2844", "att": "91", "abs": "29", "gpa": "84", "grad": "90", "otg": "76"}, {"p": "Early College", "dg": "Poverty status", "cat": "Poverty", "y": "2021-22", "n": "7566", "att": "89", "abs": "37", "gpa": "80", "grad": "91", "otg": "67"}, {"p": "Early College", "dg": "STH status", "cat": "Not STH", "y": "2021-22", "n": "9491", "att": "90", "abs": "34", "gpa": "81", "grad": "92", "otg": "71"}, {"p": "Early College", "dg": "STH status", "cat": "STH", "y": "2021-22", "n": "919", "att": "85", "abs": "49", "gpa": "77", "grad": "83", "otg": "55"}, {"p": "Early College", "dg": "SWD status", "cat": "Not SWD", "y": "2021-22", "n": "8637", "att": "90", "abs": "32", "gpa": "82", "grad": "92", "otg": "71"}, {"p": "Early College", "dg": "SWD status", "cat": "SWD", "y": "2021-22", "n": "1773", "att": "85", "abs": "48", "gpa": "74", "grad": "85", "otg": "58"}, {"p": "Early College", "dg": "All Students", "cat": "All Students", "y": "2022-23", "n": "10319", "att": "91", "abs": "29", "gpa": "80", "grad": "93", "otg": "67"}, {"p": "Early College", "dg": "ELL status", "cat": "ELL", "y": "2022-23", "n": "1068", "att": "90", "abs": "33", "gpa": "75", "grad": "78", "otg": "37"}, {"p": "Early College", "dg": "ELL status", "cat": "Not ELL", "y": "2022-23", "n": "9251", "att": "91", "abs": "28", "gpa": "81", "grad": "94", "otg": "71"}, {"p": "Early College", "dg": "Ethnicity", "cat": "Asian", "y": "2022-23", "n": "1406", "att": "92", "abs": "28", "gpa": "84", "grad": "91", "otg": "72"}, {"p": "Early College", "dg": "Ethnicity", "cat": "Black", "y": "2022-23", "n": "3112", "att": "92", "abs": "24", "gpa": "80", "grad": "96", "otg": "69"}, {"p": "Early College", "dg": "Ethnicity", "cat": "Hispanic", "y": "2022-23", "n": "4367", "att": "89", "abs": "33", "gpa": "78", "grad": "91", "otg": "61"}, {"p": "Early College", "dg": "Ethnicity", "cat": "White", "y": "2022-23", "n": "843", "att": "92", "abs": "24", "gpa": "87", "grad": "96", "otg": "80"}, {"p": "Early College", "dg": "Gender", "cat": "Female", "y": "2022-23", "n": "5482", "att": "91", "abs": "29", "gpa": "82", "grad": "95", "otg": "69"}, {"p": "Early College", "dg": "Gender", "cat": "Male", "y": "2022-23", "n": "4837", "att": "91", "abs": "28", "gpa": "78", "grad": "91", "otg": "65"}, {"p": "Early College", "dg": "Poverty status", "cat": "Not Poverty", "y": "2022-23", "n": "2613", "att": "93", "abs": "22", "gpa": "84", "grad": "93", "otg": "73"}, {"p": "Early College", "dg": "Poverty status", "cat": "Poverty", "y": "2022-23", "n": "7706", "att": "90", "abs": "31", "gpa": "79", "grad": "93", "otg": "65"}, {"p": "Early College", "dg": "STH status", "cat": "Not STH", "y": "2022-23", "n": "9317", "att": "91", "abs": "28", "gpa": "81", "grad": "93", "otg": "69"}, {"p": "Early College", "dg": "STH status", "cat": "STH", "y": "2022-23", "n": "1002", "att": "88", "abs": "39", "gpa": "77", "grad": "88", "otg": "53"}, {"p": "Early College", "dg": "SWD status", "cat": "Not SWD", "y": "2022-23", "n": "8581", "att": "91", "abs": "27", "gpa": "82", "grad": "94", "otg": "70"}, {"p": "Early College", "dg": "SWD status", "cat": "SWD", "y": "2022-23", "n": "1738", "att": "88", "abs": "38", "gpa": "74", "grad": "87", "otg": "55"}, {"p": "Early College", "dg": "All Students", "cat": "All Students", "y": "2023-24", "n": "10245", "att": "91", "abs": "27", "gpa": "80", "grad": "93", "otg": "67"}, {"p": "Early College", "dg": "ELL status", "cat": "ELL", "y": "2023-24", "n": "1112", "att": "90", "abs": "33", "gpa": "74", "grad": "70", "otg": "28"}, {"p": "Early College", "dg": "ELL status", "cat": "Not ELL", "y": "2023-24", "n": "9133", "att": "91", "abs": "27", "gpa": "81", "grad": "94", "otg": "72"}, {"p": "Early College", "dg": "Ethnicity", "cat": "Asian", "y": "2023-24", "n": "1399", "att": "92", "abs": "25", "gpa": "84", "grad": "92", "otg": "77"}, {"p": "Early College", "dg": "Ethnicity", "cat": "Black", "y": "2023-24", "n": "3193", "att": "93", "abs": "22", "gpa": "80", "grad": "96", "otg": "68"}, {"p": "Early College", "dg": "Ethnicity", "cat": "Hispanic", "y": "2023-24", "n": "4524", "att": "90", "abs": "33", "gpa": "78", "grad": "89", "otg": "60"}, {"p": "Early College", "dg": "Ethnicity", "cat": "White", "y": "2023-24", "n": "797", "att": "92", "abs": "24", "gpa": "87", "grad": "99", "otg": "85"}, {"p": "Early College", "dg": "Gender", "cat": "Female", "y": "2023-24", "n": "5452", "att": "91", "abs": "27", "gpa": "83", "grad": "95", "otg": "70"}, {"p": "Early College", "dg": "Gender", "cat": "Male", "y": "2023-24", "n": "4792", "att": "91", "abs": "28", "gpa": "78", "grad": "90", "otg": "64"}, {"p": "Early College", "dg": "Gender", "cat": "Neither male nor female", "y": "2023-24", "n": "1", "att": "99", "abs": "0", "gpa": "100", "grad": "", "otg": ""}, {"p": "Early College", "dg": "Poverty status", "cat": "Not Poverty", "y": "2023-24", "n": "2149", "att": "93", "abs": "19", "gpa": "84", "grad": "94", "otg": "80"}, {"p": "Early College", "dg": "Poverty status", "cat": "Poverty", "y": "2023-24", "n": "8096", "att": "91", "abs": "29", "gpa": "79", "grad": "93", "otg": "64"}, {"p": "Early College", "dg": "STH status", "cat": "Not STH", "y": "2023-24", "n": "9103", "att": "92", "abs": "26", "gpa": "81", "grad": "93", "otg": "69"}, {"p": "Early College", "dg": "STH status", "cat": "STH", "y": "2023-24", "n": "1142", "att": "88", "abs": "38", "gpa": "77", "grad": "87", "otg": "51"}, {"p": "Early College", "dg": "SWD status", "cat": "Not SWD", "y": "2023-24", "n": "8520", "att": "92", "abs": "25", "gpa": "82", "grad": "94", "otg": "70"}, {"p": "Early College", "dg": "SWD status", "cat": "SWD", "y": "2023-24", "n": "1725", "att": "88", "abs": "37", "gpa": "75", "grad": "88", "otg": "55"}, {"p": "Early College", "dg": "All Students", "cat": "All Students", "y": "2024-25", "n": "10645", "att": "91", "abs": "28", "gpa": "81", "grad": "93", "otg": "64"}, {"p": "Early College", "dg": "ELL status", "cat": "ELL", "y": "2024-25", "n": "1232", "att": "89", "abs": "34", "gpa": "72", "grad": "67", "otg": "23"}, {"p": "Early College", "dg": "ELL status", "cat": "Not ELL", "y": "2024-25", "n": "9413", "att": "91", "abs": "27", "gpa": "82", "grad": "95", "otg": "69"}, {"p": "Early College", "dg": "Ethnicity", "cat": "Asian", "y": "2024-25", "n": "1432", "att": "92", "abs": "25", "gpa": "83", "grad": "94", "otg": "74"}, {"p": "Early College", "dg": "Ethnicity", "cat": "Black", "y": "2024-25", "n": "3282", "att": "93", "abs": "22", "gpa": "81", "grad": "96", "otg": "62"}, {"p": "Early College", "dg": "Ethnicity", "cat": "Hispanic", "y": "2024-25", "n": "4744", "att": "89", "abs": "34", "gpa": "79", "grad": "90", "otg": "58"}, {"p": "Early College", "dg": "Ethnicity", "cat": "White", "y": "2024-25", "n": "808", "att": "92", "abs": "21", "gpa": "87", "grad": "97", "otg": "84"}, {"p": "Early College", "dg": "Gender", "cat": "Female", "y": "2024-25", "n": "5704", "att": "91", "abs": "27", "gpa": "83", "grad": "94", "otg": "67"}, {"p": "Early College", "dg": "Gender", "cat": "Male", "y": "2024-25", "n": "4940", "att": "91", "abs": "28", "gpa": "78", "grad": "91", "otg": "61"}, {"p": "Early College", "dg": "Gender", "cat": "Neither male nor female", "y": "2024-25", "n": "1", "att": "93", "abs": "0", "gpa": "95", "grad": "", "otg": "100"}, {"p": "Early College", "dg": "Poverty status", "cat": "Not Poverty", "y": "2024-25", "n": "2531", "att": "94", "abs": "18", "gpa": "84", "grad": "96", "otg": "74"}, {"p": "Early College", "dg": "Poverty status", "cat": "Poverty", "y": "2024-25", "n": "8114", "att": "90", "abs": "31", "gpa": "79", "grad": "92", "otg": "61"}, {"p": "Early College", "dg": "STH status", "cat": "Not STH", "y": "2024-25", "n": "9336", "att": "91", "abs": "27", "gpa": "81", "grad": "94", "otg": "67"}, {"p": "Early College", "dg": "STH status", "cat": "STH", "y": "2024-25", "n": "1309", "att": "87", "abs": "38", "gpa": "76", "grad": "83", "otg": "45"}, {"p": "Early College", "dg": "SWD status", "cat": "Not SWD", "y": "2024-25", "n": "8843", "att": "91", "abs": "26", "gpa": "82", "grad": "94", "otg": "66"}, {"p": "Early College", "dg": "SWD status", "cat": "SWD", "y": "2024-25", "n": "1802", "att": "88", "abs": "38", "gpa": "75", "grad": "87", "otg": "56"}, {"p": "PTech", "dg": "All Students", "cat": "All Students", "y": "2018-19", "n": "6583", "att": "88", "abs": "35", "gpa": "74", "grad": "82", "otg": "46"}, {"p": "PTech", "dg": "ELL status", "cat": "ELL", "y": "2018-19", "n": "367", "att": "81", "abs": "46", "gpa": "66", "grad": "42", "otg": "17"}, {"p": "PTech", "dg": "ELL status", "cat": "Not ELL", "y": "2018-19", "n": "6216", "att": "88", "abs": "35", "gpa": "74", "grad": "85", "otg": "48"}, {"p": "PTech", "dg": "Ethnicity", "cat": "Asian", "y": "2018-19", "n": "528", "att": "90", "abs": "29", "gpa": "81", "grad": "90", "otg": "59"}, {"p": "PTech", "dg": "Ethnicity", "cat": "Black", "y": "2018-19", "n": "2223", "att": "88", "abs": "35", "gpa": "71", "grad": "80", "otg": "37"}, {"p": "PTech", "dg": "Ethnicity", "cat": "Hispanic", "y": "2018-19", "n": "2839", "att": "86", "abs": "39", "gpa": "73", "grad": "82", "otg": "45"}, {"p": "PTech", "dg": "Ethnicity", "cat": "White", "y": "2018-19", "n": "754", "att": "89", "abs": "29", "gpa": "79", "grad": "87", "otg": "63"}, {"p": "PTech", "dg": "Gender", "cat": "Female", "y": "2018-19", "n": "2737", "att": "88", "abs": "37", "gpa": "76", "grad": "86", "otg": "50"}, {"p": "PTech", "dg": "Gender", "cat": "Male", "y": "2018-19", "n": "3846", "att": "88", "abs": "35", "gpa": "73", "grad": "80", "otg": "43"}, {"p": "PTech", "dg": "Poverty status", "cat": "Not Poverty", "y": "2018-19", "n": "1859", "att": "90", "abs": "27", "gpa": "76", "grad": "89", "otg": "56"}, {"p": "PTech", "dg": "Poverty status", "cat": "Poverty", "y": "2018-19", "n": "4724", "att": "87", "abs": "38", "gpa": "73", "grad": "80", "otg": "43"}, {"p": "PTech", "dg": "STH status", "cat": "Not STH", "y": "2018-19", "n": "5973", "att": "88", "abs": "34", "gpa": "74", "grad": "84", "otg": "48"}, {"p": "PTech", "dg": "STH status", "cat": "STH", "y": "2018-19", "n": "610", "att": "83", "abs": "51", "gpa": "69", "grad": "63", "otg": "29"}, {"p": "PTech", "dg": "SWD status", "cat": "Not SWD", "y": "2018-19", "n": "5171", "att": "89", "abs": "33", "gpa": "75", "grad": "86", "otg": "51"}, {"p": "PTech", "dg": "SWD status", "cat": "SWD", "y": "2018-19", "n": "1412", "att": "83", "abs": "45", "gpa": "69", "grad": "69", "otg": "31"}, {"p": "PTech", "dg": "All Students", "cat": "All Students", "y": "2019-20", "n": "6606", "att": "89", "abs": "31", "gpa": "74", "grad": "84", "otg": "3"}, {"p": "PTech", "dg": "ELL status", "cat": "ELL", "y": "2019-20", "n": "385", "att": "83", "abs": "43", "gpa": "68", "grad": "52", "otg": "1"}, {"p": "PTech", "dg": "ELL status", "cat": "Not ELL", "y": "2019-20", "n": "6221", "att": "89", "abs": "31", "gpa": "75", "grad": "86", "otg": "4"}, {"p": "PTech", "dg": "Ethnicity", "cat": "Asian", "y": "2019-20", "n": "568", "att": "92", "abs": "21", "gpa": "79", "grad": "91", "otg": "5"}, {"p": "PTech", "dg": "Ethnicity", "cat": "Black", "y": "2019-20", "n": "2188", "att": "89", "abs": "31", "gpa": "72", "grad": "83", "otg": "3"}, {"p": "PTech", "dg": "Ethnicity", "cat": "Hispanic", "y": "2019-20", "n": "2884", "att": "88", "abs": "35", "gpa": "74", "grad": "83", "otg": "3"}, {"p": "PTech", "dg": "Ethnicity", "cat": "White", "y": "2019-20", "n": "732", "att": "90", "abs": "29", "gpa": "79", "grad": "89", "otg": "3"}, {"p": "PTech", "dg": "Gender", "cat": "Female", "y": "2019-20", "n": "2696", "att": "89", "abs": "34", "gpa": "78", "grad": "89", "otg": "3"}, {"p": "PTech", "dg": "Gender", "cat": "Male", "y": "2019-20", "n": "3910", "att": "89", "abs": "30", "gpa": "72", "grad": "81", "otg": "4"}, {"p": "PTech", "dg": "Poverty status", "cat": "Not Poverty", "y": "2019-20", "n": "1664", "att": "92", "abs": "23", "gpa": "76", "grad": "89", "otg": "6"}, {"p": "PTech", "dg": "Poverty status", "cat": "Poverty", "y": "2019-20", "n": "4942", "att": "88", "abs": "34", "gpa": "74", "grad": "83", "otg": "3"}, {"p": "PTech", "dg": "STH status", "cat": "Not STH", "y": "2019-20", "n": "5959", "att": "89", "abs": "30", "gpa": "75", "grad": "86", "otg": "4"}, {"p": "PTech", "dg": "STH status", "cat": "STH", "y": "2019-20", "n": "647", "att": "84", "abs": "50", "gpa": "71", "grad": "70", "otg": "1"}, {"p": "PTech", "dg": "SWD status", "cat": "Not SWD", "y": "2019-20", "n": "5157", "att": "90", "abs": "28", "gpa": "75", "grad": "88", "otg": "4"}, {"p": "PTech", "dg": "SWD status", "cat": "SWD", "y": "2019-20", "n": "1449", "att": "84", "abs": "42", "gpa": "71", "grad": "71", "otg": "2"}, {"p": "PTech", "dg": "All Students", "cat": "All Students", "y": "2020-21", "n": "6592", "att": "83", "abs": "41", "gpa": "76", "grad": "90", "otg": "58"}, {"p": "PTech", "dg": "ELL status", "cat": "ELL", "y": "2020-21", "n": "416", "att": "77", "abs": "47", "gpa": "68", "grad": "63", "otg": "40"}, {"p": "PTech", "dg": "ELL status", "cat": "Not ELL", "y": "2020-21", "n": "6176", "att": "84", "abs": "41", "gpa": "76", "grad": "91", "otg": "59"}, {"p": "PTech", "dg": "Ethnicity", "cat": "Asian", "y": "2020-21", "n": "569", "att": "90", "abs": "26", "gpa": "81", "grad": "95", "otg": "77"}, {"p": "PTech", "dg": "Ethnicity", "cat": "Black", "y": "2020-21", "n": "2124", "att": "82", "abs": "45", "gpa": "74", "grad": "87", "otg": "48"}, {"p": "PTech", "dg": "Ethnicity", "cat": "Hispanic", "y": "2020-21", "n": "2976", "att": "82", "abs": "44", "gpa": "74", "grad": "89", "otg": "58"}, {"p": "PTech", "dg": "Ethnicity", "cat": "White", "y": "2020-21", "n": "657", "att": "86", "abs": "33", "gpa": "82", "grad": "91", "otg": "74"}, {"p": "PTech", "dg": "Gender", "cat": "Female", "y": "2020-21", "n": "2663", "att": "85", "abs": "37", "gpa": "79", "grad": "93", "otg": "63"}, {"p": "PTech", "dg": "Gender", "cat": "Male", "y": "2020-21", "n": "3929", "att": "82", "abs": "44", "gpa": "73", "grad": "88", "otg": "54"}, {"p": "PTech", "dg": "Poverty status", "cat": "Not Poverty", "y": "2020-21", "n": "1568", "att": "88", "abs": "33", "gpa": "78", "grad": "95", "otg": "68"}, {"p": "PTech", "dg": "Poverty status", "cat": "Poverty", "y": "2020-21", "n": "5024", "att": "82", "abs": "44", "gpa": "75", "grad": "88", "otg": "55"}, {"p": "PTech", "dg": "STH status", "cat": "Not STH", "y": "2020-21", "n": "5951", "att": "84", "abs": "40", "gpa": "76", "grad": "90", "otg": "59"}, {"p": "PTech", "dg": "STH status", "cat": "STH", "y": "2020-21", "n": "641", "att": "76", "abs": "54", "gpa": "72", "grad": "80", "otg": "44"}, {"p": "PTech", "dg": "SWD status", "cat": "Not SWD", "y": "2020-21", "n": "5085", "att": "85", "abs": "39", "gpa": "77", "grad": "93", "otg": "61"}, {"p": "PTech", "dg": "SWD status", "cat": "SWD", "y": "2020-21", "n": "1507", "att": "77", "abs": "51", "gpa": "72", "grad": "77", "otg": "48"}, {"p": "PTech", "dg": "All Students", "cat": "All Students", "y": "2021-22", "n": "6851", "att": "84", "abs": "49", "gpa": "75", "grad": "90", "otg": "64"}, {"p": "PTech", "dg": "ELL status", "cat": "ELL", "y": "2021-22", "n": "551", "att": "81", "abs": "54", "gpa": "71", "grad": "77", "otg": "50"}, {"p": "PTech", "dg": "ELL status", "cat": "Not ELL", "y": "2021-22", "n": "6300", "att": "84", "abs": "48", "gpa": "76", "grad": "91", "otg": "65"}, {"p": "PTech", "dg": "Ethnicity", "cat": "Asian", "y": "2021-22", "n": "577", "att": "88", "abs": "35", "gpa": "83", "grad": "97", "otg": "78"}, {"p": "PTech", "dg": "Ethnicity", "cat": "Black", "y": "2021-22", "n": "2234", "att": "83", "abs": "50", "gpa": "74", "grad": "90", "otg": "55"}, {"p": "PTech", "dg": "Ethnicity", "cat": "Hispanic", "y": "2021-22", "n": "3185", "att": "83", "abs": "52", "gpa": "74", "grad": "88", "otg": "64"}, {"p": "PTech", "dg": "Ethnicity", "cat": "White", "y": "2021-22", "n": "611", "att": "86", "abs": "44", "gpa": "81", "grad": "93", "otg": "81"}, {"p": "PTech", "dg": "Gender", "cat": "Female", "y": "2021-22", "n": "2858", "att": "83", "abs": "52", "gpa": "78", "grad": "93", "otg": "69"}, {"p": "PTech", "dg": "Gender", "cat": "Male", "y": "2021-22", "n": "3993", "att": "84", "abs": "47", "gpa": "74", "grad": "88", "otg": "61"}, {"p": "PTech", "dg": "Poverty status", "cat": "Not Poverty", "y": "2021-22", "n": "1685", "att": "88", "abs": "38", "gpa": "76", "grad": "92", "otg": "71"}, {"p": "PTech", "dg": "Poverty status", "cat": "Poverty", "y": "2021-22", "n": "5166", "att": "82", "abs": "52", "gpa": "75", "grad": "90", "otg": "62"}, {"p": "PTech", "dg": "STH status", "cat": "Not STH", "y": "2021-22", "n": "6150", "att": "84", "abs": "47", "gpa": "76", "grad": "91", "otg": "66"}, {"p": "PTech", "dg": "STH status", "cat": "STH", "y": "2021-22", "n": "701", "att": "77", "abs": "63", "gpa": "72", "grad": "84", "otg": "53"}, {"p": "PTech", "dg": "SWD status", "cat": "Not SWD", "y": "2021-22", "n": "5287", "att": "85", "abs": "46", "gpa": "76", "grad": "93", "otg": "68"}, {"p": "PTech", "dg": "SWD status", "cat": "SWD", "y": "2021-22", "n": "1564", "att": "79", "abs": "58", "gpa": "72", "grad": "82", "otg": "52"}, {"p": "PTech", "dg": "All Students", "cat": "All Students", "y": "2022-23", "n": "6793", "att": "86", "abs": "43", "gpa": "75", "grad": "90", "otg": "59"}, {"p": "PTech", "dg": "ELL status", "cat": "ELL", "y": "2022-23", "n": "568", "att": "83", "abs": "47", "gpa": "69", "grad": "70", "otg": "32"}, {"p": "PTech", "dg": "ELL status", "cat": "Not ELL", "y": "2022-23", "n": "6225", "att": "86", "abs": "42", "gpa": "75", "grad": "92", "otg": "61"}, {"p": "PTech", "dg": "Ethnicity", "cat": "Asian", "y": "2022-23", "n": "528", "att": "91", "abs": "31", "gpa": "82", "grad": "98", "otg": "76"}, {"p": "PTech", "dg": "Ethnicity", "cat": "Black", "y": "2022-23", "n": "2142", "att": "85", "abs": "46", "gpa": "73", "grad": "89", "otg": "51"}, {"p": "PTech", "dg": "Ethnicity", "cat": "Hispanic", "y": "2022-23", "n": "3108", "att": "85", "abs": "45", "gpa": "73", "grad": "88", "otg": "58"}, {"p": "PTech", "dg": "Ethnicity", "cat": "White", "y": "2022-23", "n": "596", "att": "89", "abs": "32", "gpa": "80", "grad": "95", "otg": "78"}, {"p": "PTech", "dg": "Gender", "cat": "Female", "y": "2022-23", "n": "2881", "att": "85", "abs": "45", "gpa": "77", "grad": "91", "otg": "61"}, {"p": "PTech", "dg": "Gender", "cat": "Male", "y": "2022-23", "n": "3911", "att": "86", "abs": "41", "gpa": "73", "grad": "89", "otg": "57"}, {"p": "PTech", "dg": "Gender", "cat": "Neither male nor female", "y": "2022-23", "n": "1", "att": "87", "abs": "100", "gpa": "86", "grad": "", "otg": "100"}, {"p": "PTech", "dg": "Poverty status", "cat": "Not Poverty", "y": "2022-23", "n": "1567", "att": "90", "abs": "28", "gpa": "77", "grad": "93", "otg": "71"}, {"p": "PTech", "dg": "Poverty status", "cat": "Poverty", "y": "2022-23", "n": "5226", "att": "84", "abs": "47", "gpa": "74", "grad": "89", "otg": "55"}, {"p": "PTech", "dg": "STH status", "cat": "Not STH", "y": "2022-23", "n": "6053", "att": "86", "abs": "41", "gpa": "75", "grad": "91", "otg": "60"}, {"p": "PTech", "dg": "STH status", "cat": "STH", "y": "2022-23", "n": "740", "att": "79", "abs": "59", "gpa": "70", "grad": "82", "otg": "46"}, {"p": "PTech", "dg": "SWD status", "cat": "Not SWD", "y": "2022-23", "n": "5159", "att": "87", "abs": "40", "gpa": "76", "grad": "92", "otg": "62"}, {"p": "PTech", "dg": "SWD status", "cat": "SWD", "y": "2022-23", "n": "1634", "att": "82", "abs": "51", "gpa": "71", "grad": "84", "otg": "48"}, {"p": "PTech", "dg": "All Students", "cat": "All Students", "y": "2023-24", "n": "6885", "att": "86", "abs": "42", "gpa": "74", "grad": "86", "otg": "57"}, {"p": "PTech", "dg": "ELL status", "cat": "ELL", "y": "2023-24", "n": "590", "att": "81", "abs": "50", "gpa": "66", "grad": "56", "otg": "28"}, {"p": "PTech", "dg": "ELL status", "cat": "Not ELL", "y": "2023-24", "n": "6295", "att": "86", "abs": "41", "gpa": "75", "grad": "88", "otg": "60"}, {"p": "PTech", "dg": "Ethnicity", "cat": "Asian", "y": "2023-24", "n": "537", "att": "91", "abs": "32", "gpa": "82", "grad": "92", "otg": "80"}, {"p": "PTech", "dg": "Ethnicity", "cat": "Black", "y": "2023-24", "n": "2241", "att": "86", "abs": "43", "gpa": "73", "grad": "88", "otg": "50"}, {"p": "PTech", "dg": "Ethnicity", "cat": "Hispanic", "y": "2023-24", "n": "3295", "att": "85", "abs": "44", "gpa": "73", "grad": "84", "otg": "55"}, {"p": "PTech", "dg": "Ethnicity", "cat": "White", "y": "2023-24", "n": "617", "att": "89", "abs": "33", "gpa": "80", "grad": "91", "otg": "76"}, {"p": "PTech", "dg": "Gender", "cat": "Female", "y": "2023-24", "n": "2904", "att": "85", "abs": "44", "gpa": "76", "grad": "88", "otg": "58"}, {"p": "PTech", "dg": "Gender", "cat": "Male", "y": "2023-24", "n": "3981", "att": "86", "abs": "40", "gpa": "73", "grad": "85", "otg": "57"}, {"p": "PTech", "dg": "Poverty status", "cat": "Not Poverty", "y": "2023-24", "n": "1446", "att": "91", "abs": "28", "gpa": "78", "grad": "92", "otg": "73"}, {"p": "PTech", "dg": "Poverty status", "cat": "Poverty", "y": "2023-24", "n": "5439", "att": "85", "abs": "45", "gpa": "73", "grad": "85", "otg": "53"}, {"p": "PTech", "dg": "STH status", "cat": "Not STH", "y": "2023-24", "n": "6015", "att": "87", "abs": "39", "gpa": "75", "grad": "88", "otg": "60"}, {"p": "PTech", "dg": "STH status", "cat": "STH", "y": "2023-24", "n": "870", "att": "78", "abs": "59", "gpa": "70", "grad": "72", "otg": "37"}, {"p": "PTech", "dg": "SWD status", "cat": "Not SWD", "y": "2023-24", "n": "5303", "att": "87", "abs": "39", "gpa": "75", "grad": "88", "otg": "61"}, {"p": "PTech", "dg": "SWD status", "cat": "SWD", "y": "2023-24", "n": "1582", "att": "82", "abs": "51", "gpa": "70", "grad": "80", "otg": "46"}, {"p": "PTech", "dg": "All Students", "cat": "All Students", "y": "2024-25", "n": "7066", "att": "86", "abs": "40", "gpa": "75", "grad": "88", "otg": "55"}, {"p": "PTech", "dg": "ELL status", "cat": "ELL", "y": "2024-25", "n": "604", "att": "80", "abs": "50", "gpa": "68", "grad": "56", "otg": "20"}, {"p": "PTech", "dg": "ELL status", "cat": "Not ELL", "y": "2024-25", "n": "6462", "att": "86", "abs": "39", "gpa": "75", "grad": "90", "otg": "58"}, {"p": "PTech", "dg": "Ethnicity", "cat": "Asian", "y": "2024-25", "n": "506", "att": "90", "abs": "35", "gpa": "80", "grad": "95", "otg": "76"}, {"p": "PTech", "dg": "Ethnicity", "cat": "Black", "y": "2024-25", "n": "2371", "att": "86", "abs": "42", "gpa": "73", "grad": "85", "otg": "49"}, {"p": "PTech", "dg": "Ethnicity", "cat": "Hispanic", "y": "2024-25", "n": "3387", "att": "85", "abs": "41", "gpa": "74", "grad": "88", "otg": "52"}, {"p": "PTech", "dg": "Ethnicity", "cat": "White", "y": "2024-25", "n": "584", "att": "88", "abs": "33", "gpa": "81", "grad": "92", "otg": "73"}, {"p": "PTech", "dg": "Gender", "cat": "Female", "y": "2024-25", "n": "2963", "att": "86", "abs": "42", "gpa": "77", "grad": "91", "otg": "56"}, {"p": "PTech", "dg": "Gender", "cat": "Male", "y": "2024-25", "n": "4101", "att": "86", "abs": "39", "gpa": "73", "grad": "86", "otg": "55"}, {"p": "PTech", "dg": "Gender", "cat": "Neither male nor female", "y": "2024-25", "n": "2", "att": "68", "abs": "100", "gpa": "71", "grad": "", "otg": "50"}, {"p": "PTech", "dg": "Poverty status", "cat": "Not Poverty", "y": "2024-25", "n": "1455", "att": "91", "abs": "27", "gpa": "79", "grad": "89", "otg": "69"}, {"p": "PTech", "dg": "Poverty status", "cat": "Poverty", "y": "2024-25", "n": "5611", "att": "85", "abs": "43", "gpa": "74", "grad": "88", "otg": "52"}, {"p": "PTech", "dg": "STH status", "cat": "Not STH", "y": "2024-25", "n": "6122", "att": "87", "abs": "38", "gpa": "75", "grad": "89", "otg": "57"}, {"p": "PTech", "dg": "STH status", "cat": "STH", "y": "2024-25", "n": "944", "att": "79", "abs": "56", "gpa": "70", "grad": "78", "otg": "40"}, {"p": "PTech", "dg": "SWD status", "cat": "Not SWD", "y": "2024-25", "n": "5420", "att": "87", "abs": "37", "gpa": "76", "grad": "90", "otg": "59"}, {"p": "PTech", "dg": "SWD status", "cat": "SWD", "y": "2024-25", "n": "1646", "att": "82", "abs": "50", "gpa": "70", "grad": "81", "otg": "45"}];
+const PROG_LABELS = {"FRNYC": "FRNYC schools", "FRNYC - students": "FRNYC students", "CTE": "CTE schools", "CTE - students": "CTE students", "Citywide": "Citywide", "CRMYA": "CRMYA schools", "Computer Science": "Computer Science schools", "Early College": "Early College schools", "PTech": "PTech schools"};
+
+// Per-program colors used for chart lines whenever a series represents a program.
+const PROG_COLORS = {
+  "Citywide":         "#4b5563", // gray (darkened)
+  "CTE":              "#6b21a8", // dark purple
+  "CTE - students":   "#c084fc", // light purple
+  "FRNYC":            "#15803d", // dark green
+  "FRNYC - students": "#86efac", // light green
+  "CRMYA":            "#f97316", // orange
+  "Computer Science": "#eab308", // yellow
+  "PTech":            "#1e3a8a", // dark blue
+  "Early College":    "#60a5fa", // light blue
+};
+
+
+const PALETTE = [
+  '#2563eb','#f59e0b','#10b981','#ef4444',
+  '#8b5cf6','#06b6d4','#f97316','#84cc16'
+];
+
+const METRICS = [
+  { key: 'n',    label: 'Enrollment Totals (#)',          unit: '',    pct: false, wide: true  },
+  { key: 'att',  label: 'Attendance Rate (%)',            unit: '%',   pct: true,  wide: false },
+  { key: 'abs',  label: 'Chronic Absenteeism Rate (%)',   unit: '%',   pct: true,  wide: false },
+  { key: 'gpa',  label: 'Average GPA (pts.)',             unit: 'pts', pct: true,  wide: false },
+  { key: 'grad', label: 'Graduation Rate (%)',            unit: '%',   pct: true,  wide: false },
+  { key: 'otg',  label: 'On Track Status (%)',            unit: '%',   pct: true,  wide: false },
+];
+
+const YEARS = ['2018-19','2019-20','2020-21','2021-22','2022-23','2023-24','2024-25'];
+
+// State
+let selectedPrograms = new Set(['Citywide']); // Citywide is the baseline; users add programs to compare
+let selectedDemoGroup = 'ALL';
+const chartInstances = {};
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+function init() {
+  // Program chips (multi-select; Citywide is checked by default and shown first)
+  const allPrograms = [...new Set(RAW_DATA.map(r => r.p))].sort();
+  const programs = ['Citywide', ...allPrograms.filter(p => p !== 'Citywide')];
+  const progContainer = document.getElementById('programChips');
+  programs.forEach(p => {
+    const label = PROG_LABELS[p] || p;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'chip' + (selectedPrograms.has(p) ? ' chip-active' : '');
+    btn.dataset.value = p;
+    btn.textContent = label;
+    btn.addEventListener('click', () => {
+      if (selectedPrograms.has(p)) {
+        selectedPrograms.delete(p);
+        if (selectedPrograms.size === 0) selectedPrograms.add('Citywide');
+      } else {
+        selectedPrograms.add(p);
+      }
+      syncProgramChips();
+      render();
+    });
+    progContainer.appendChild(btn);
+  });
+
+  // Demographic group chips (single-select; "All Students" is the default)
+  const demoGroupsRaw = [...new Set(RAW_DATA.map(r => r.dg))];
+  const demoOrder = ['All Students', 'Ethnicity', 'Gender', 'ELL status', 'Poverty status', 'SWD status', 'STH status'];
+  const demoGroups = demoOrder.filter(g => demoGroupsRaw.includes(g))
+    .concat(demoGroupsRaw.filter(g => !demoOrder.includes(g)));
+  const demoContainer = document.getElementById('demoChips');
+  demoGroups.forEach(g => {
+    const isAll = (g === 'All Students');
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    const value = isAll ? 'ALL' : g;
+    btn.className = 'chip' + (selectedDemoGroup === value ? ' chip-active' : '');
+    btn.dataset.value = value;
+    btn.textContent = g;
+    btn.addEventListener('click', () => {
+      selectedDemoGroup = value;
+      syncDemoChips();
+      render();
+    });
+    demoContainer.appendChild(btn);
+  });
+
+
+  render();
+}
+
+function syncProgramChips() {
+  document.querySelectorAll('#programChips .chip').forEach(btn => {
+    btn.classList.toggle('chip-active', selectedPrograms.has(btn.dataset.value));
+  });
+}
+function syncDemoChips() {
+  document.querySelectorAll('#demoChips .chip').forEach(btn => {
+    btn.classList.toggle('chip-active', btn.dataset.value === selectedDemoGroup);
+  });
+}
+
+function resetFilters() {
+  selectedPrograms = new Set(['Citywide']);
+  selectedDemoGroup = 'ALL';
+  syncProgramChips();
+  syncDemoChips();
+  render();
+}
+
+// ── DATA HELPERS ──────────────────────────────────────────────────────────────
+function getFilteredRows() {
+  return RAW_DATA.filter(r => {
+    const progMatch = selectedPrograms.has(r.p);
+    const demoMatch = selectedDemoGroup === 'ALL'
+      ? r.dg === 'All Students'
+      : r.dg === selectedDemoGroup;
+    return progMatch && demoMatch;
+  });
+}
+
+// Returns list of { seriesKey, label, y, val }
+// When single program (or ALL): series = category
+// When multiple specific programs: series = "ProgramLabel – Category"
+function buildSeries(rows, metricKey) {
+  const multiProg = selectedPrograms.size > 1;
+  const groups = {};
+  rows.forEach(r => {
+    const val = r[metricKey];
+    if (val === '' || val === null || val === undefined) return;
+    const progLabel = PROG_LABELS[r.p] || r.p;
+    const seriesKey = multiProg ? `${progLabel} – ${r.cat}` : r.cat;
+    const k = seriesKey + '|' + r.y;
+    if (!groups[k]) groups[k] = { seriesKey, y: r.y, vals: [] };
+    groups[k].vals.push(parseFloat(val));
+  });
+  const aggregated = [];
+  Object.values(groups).forEach(g => {
+    const avg = g.vals.reduce((a,b) => a+b, 0) / g.vals.length;
+    aggregated.push({ seriesKey: g.seriesKey, y: g.y, val: avg });
+  });
+  return aggregated;
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function render() {
+  renderSummary();
+  renderCharts();
+  renderFooter();
+}
+
+function renderFooter() {
+  const progLabel = [...selectedPrograms].map(p => PROG_LABELS[p] || p).join(', ');
+  const demo = selectedDemoGroup === 'ALL' ? 'All Students' : selectedDemoGroup;
+  document.getElementById('footerNote').textContent =
+    `Showing: ${progLabel} · ${demo} · Academic years 2018–19 through 2024–25`;
+}
+
+function renderSummary() {
+  // KPI cards always reflect the "All Students" totals for the selected programs,
+  // independent of the demographic group filter, so the headline number stays
+  // stable as users explore demographic breakdowns in the charts below.
+  const rows = RAW_DATA.filter(r => selectedPrograms.has(r.p) && r.dg === 'All Students');
+  const bar = document.getElementById('summaryBar');
+  bar.innerHTML = '';
+  const latestYear = '2024-25';
+  const latestRows = rows.filter(r => r.y === latestYear);
+  const baseRows = rows.filter(r => r.y === '2018-19');
+  const summaryMetrics = [
+    { key: 'att',  label: 'Attendance',      unit: '%' },
+    { key: 'abs',  label: 'Chronic Absent.', unit: '%' },
+    { key: 'gpa',  label: 'Avg GPA',         unit: ' pts' },
+    { key: 'grad', label: 'Graduation',      unit: '%' },
+    { key: 'otg',  label: 'On Track',        unit: '%' },
+  ];
+  summaryMetrics.forEach(m => {
+    const vals = latestRows.map(r => parseFloat(r[m.key])).filter(v => !isNaN(v));
+    if (!vals.length) return;
+    const avg = vals.reduce((a,b)=>a+b,0)/vals.length;
+    const eVals = baseRows.map(r => parseFloat(r[m.key])).filter(v => !isNaN(v));
+    const eAvg = eVals.length ? eVals.reduce((a,b)=>a+b,0)/eVals.length : null;
+    let trendHtml = '';
+    if (eAvg !== null) {
+      const diff = avg - eAvg;
+      const absDiff = Math.round(Math.abs(diff));
+      const isGoodUp = m.key !== 'abs';
+      if (Math.abs(diff) < 0.5) {
+        trendHtml = `<div class="stat-trend trend-neutral">↔ Stable vs 2018–19</div>`;
+      } else if (diff > 0) {
+        trendHtml = `<div class="stat-trend ${isGoodUp ? 'trend-up':'trend-down'}">↑ +${absDiff}${m.unit} vs 2018–19</div>`;
+      } else {
+        trendHtml = `<div class="stat-trend ${isGoodUp ? 'trend-down':'trend-up'}">↓ ${absDiff}${m.unit} vs 2018–19</div>`;
+      }
+    }
+    bar.innerHTML += `<div class="stat-card">
+      <div class="stat-label">${m.label} <span style="font-weight:300">(${latestYear})</span></div>
+      <div class="stat-value">${Math.round(avg)}<span class="stat-unit">${m.unit}</span></div>
+      ${trendHtml}
+    </div>`;
+  });
+}
+
+// Chart.js plugin: light gray band between 2019-20 and 2020-21 marking COVID disruption.
+const covidShadingPlugin = {
+  id: 'covidShading',
+  beforeDatasetsDraw(chart) {
+    const xScale = chart.scales.x;
+    if (!xScale) return;
+    const labels = (chart.data && chart.data.labels) || [];
+    if (!labels.includes('2019-20') || !labels.includes('2020-21')) return;
+    const x1 = xScale.getPixelForValue('2019-20');
+    const x2 = xScale.getPixelForValue('2020-21');
+    const { top, bottom } = chart.chartArea;
+    const ctx = chart.ctx;
+    ctx.save();
+    ctx.fillStyle = 'rgba(120, 120, 140, 0.13)';
+    ctx.fillRect(x1, top, x2 - x1, bottom - top);
+    // Horizontal label at the top of the shaded band.
+    ctx.fillStyle = '#6b7794';
+    ctx.font = "9px 'DM Sans', sans-serif";
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText('Covid-19 School Disruptions', (x1 + x2) / 2, top + 4);
+    ctx.restore();
+  }
+};
+
+// Format a numeric value for display in tooltips and data tables.
+function formatMetricValue(val, metric) {
+  if (val === null || val === undefined || (typeof val === 'number' && isNaN(val))) return '—';
+  if (metric.key === 'n') return Math.round(val).toLocaleString();
+  if (metric.unit === '%') return Math.round(val) + '%';
+  if (metric.key === 'gpa') return Math.round(val).toString();
+  if (metric.unit) return Math.round(val) + ' ' + metric.unit;
+  return Math.round(val).toString();
+}
+
+// Render a small inline SVG line that matches the chart's color + dash style.
+function renderLineSwatch(color, dash) {
+  const dashAttr = (dash && dash.length) ? ` stroke-dasharray="${dash.join(',')}"` : '';
+  return `<svg class="line-swatch" viewBox="0 0 22 10" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">`
+       + `<line x1="1" y1="5" x2="21" y2="5" stroke="${color}" stroke-width="2.5" stroke-linecap="round"${dashAttr}/>`
+       + `</svg>`;
+}
+
+function renderCharts() {
+  const rows = getFilteredRows();
+  const grid = document.getElementById('chartsGrid');
+  Object.values(chartInstances).forEach(c => c.destroy());
+  Object.keys(chartInstances).forEach(k => delete chartInstances[k]);
+  grid.innerHTML = '';
+  if (!rows.length) {
+    grid.innerHTML = `<div class="empty-state">No data for this filter combination.</div>`;
+    return;
+  }
+  // When multiple programs are selected, color each line by its program using
+  // PROG_COLORS. Within the same program, vary the line dash so demographic
+  // categories remain distinguishable.
+  const multiProg = selectedPrograms.size > 1;
+  const LABEL_TO_PROGKEY = {};
+  Object.keys(PROG_LABELS).forEach(k => { LABEL_TO_PROGKEY[PROG_LABELS[k]] = k; });
+  const DASH_PATTERNS = [[], [6, 4], [2, 3], [10, 4, 2, 4], [8, 3, 2, 3, 2, 3]];
+
+  METRICS.forEach(metric => {
+    const card = document.createElement('div');
+    card.className = 'chart-card' + (metric.wide ? ' wide' : '');
+    const aggRows = buildSeries(rows, metric.key);
+    const seriesKeys = [...new Set(aggRows.map(r => r.seriesKey))].sort();
+
+    // Compute color + dash per series
+    const seriesStyle = {};
+    if (multiProg) {
+      // Color by program; dash distinguishes demographic categories within a program.
+      const progGroups = {};
+      seriesKeys.forEach(sk => {
+        const sep = sk.indexOf(' – ');
+        const progLabel = sep >= 0 ? sk.substring(0, sep) : sk;
+        const pk = LABEL_TO_PROGKEY[progLabel] || null;
+        if (!progGroups[pk]) progGroups[pk] = [];
+        progGroups[pk].push(sk);
+      });
+      Object.entries(progGroups).forEach(([pk, sks]) => {
+        const baseColor = (pk && PROG_COLORS[pk]) ? PROG_COLORS[pk] : PALETTE[0];
+        sks.forEach((sk, idx) => {
+          seriesStyle[sk] = { color: baseColor, dash: DASH_PATTERNS[idx % DASH_PATTERNS.length] };
+        });
+      });
+    } else if (selectedPrograms.size === 1) {
+      // Single program — apply its color to every series; dash distinguishes
+      // demographic categories within that program.
+      const onlyProg = [...selectedPrograms][0];
+      const baseColor = PROG_COLORS[onlyProg] || PALETTE[0];
+      seriesKeys.forEach((sk, idx) => {
+        seriesStyle[sk] = { color: baseColor, dash: DASH_PATTERNS[idx % DASH_PATTERNS.length] };
+      });
+    } else {
+      seriesKeys.forEach((sk, i) => {
+        seriesStyle[sk] = { color: PALETTE[i % PALETTE.length], dash: [] };
+      });
+    }
+
+    const datasets = seriesKeys.map(sk => {
+      const skData = aggRows.filter(r => r.seriesKey === sk);
+      const dataMap = {};
+      skData.forEach(r => { dataMap[r.y] = r.val; });
+      const { color, dash } = seriesStyle[sk];
+      // For On Track Status, suppress 2019-20 (Regents waiver / appeals impact).
+      const seriesData = YEARS.map(y => {
+        if (metric.key === 'otg' && y === '2019-20') return null;
+        return dataMap[y] !== undefined ? dataMap[y] : null;
+      });
+      return {
+        label: sk,
+        data: seriesData,
+        borderColor: color,
+        backgroundColor: color + '18',
+        borderWidth: 2.5,
+        borderDash: dash,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        pointBackgroundColor: color,
+        tension: 0.35,
+        spanGaps: true,
+      };
+    });
+    const legendPills = seriesKeys.map(sk => {
+      const { color, dash } = seriesStyle[sk];
+      return `<div class="legend-pill">${renderLineSwatch(color, dash)}${sk}</div>`;
+    }).join('');
+    // Build the corresponding data table
+    const tableRows = seriesKeys.map(sk => {
+      const skData = aggRows.filter(r => r.seriesKey === sk);
+      const dataMap = {};
+      skData.forEach(r => { dataMap[r.y] = r.val; });
+      const { color, dash } = seriesStyle[sk];
+      const cells = YEARS.map(y => {
+        if (metric.key === 'otg' && y === '2019-20') {
+          return `<td class="muted">—</td>`;
+        }
+        const v = dataMap[y];
+        const cls = (v === undefined || v === null) ? ' class="muted"' : '';
+        return `<td${cls}>${formatMetricValue(v, metric)}</td>`;
+      }).join('');
+      return `<tr><td>${renderLineSwatch(color, dash)}${sk}</td>${cells}</tr>`;
+    }).join('');
+    const dataTableHtml = `
+      <div class="chart-data-table-wrap">
+        <table class="chart-data-table">
+          <thead><tr><th>Series</th>${YEARS.map(y => `<th>${y}</th>`).join('')}</tr></thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+      </div>`;
+    const noteHtml = metric.key === 'otg'
+      ? `<div class="chart-note">* Regents exam waivers and special appeals impacted cohorts&rsquo; on-track status through 2024&ndash;25 at various rates, depending on which grades students were in during implementation.</div>`
+      : '';
+    card.innerHTML = `
+      <div class="chart-header">
+        <div class="chart-title">${metric.label}</div>
+        <div class="chart-subtitle">${metric.unit ? 'Measured in '+(metric.unit==='%'?'percent':metric.unit) : 'Headcount'} · by year</div>
+      </div>
+      <div class="chart-wrap"><canvas id="chart_${metric.key}"></canvas></div>
+      <div class="legend-pills">${legendPills}</div>
+      ${dataTableHtml}
+      ${noteHtml}`;
+    grid.appendChild(card);
+    const ctx = card.querySelector(`#chart_${metric.key}`).getContext('2d');
+    const isCount = metric.key === 'n';
+    chartInstances[metric.key] = new Chart(ctx, {
+      type: 'line',
+      data: { labels: YEARS, datasets },
+      plugins: [covidShadingPlugin],
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#fff',
+            borderColor: '#dde2ef',
+            borderWidth: 1,
+            titleColor: '#1a2035',
+            bodyColor: '#6b7794',
+            padding: 12,
+            boxShadow: '0 4px 16px rgba(30,40,80,0.12)',
+            callbacks: {
+              label: ctx => {
+                const val = ctx.raw;
+                if (val === null || val === undefined) return `  ${ctx.dataset.label}: N/A`;
+                if (isCount) return `  ${ctx.dataset.label}: ${Math.round(val).toLocaleString()}`;
+                if (metric.unit === '%') return `  ${ctx.dataset.label}: ${Math.round(val)}%`;
+                return `  ${ctx.dataset.label}: ${Math.round(val)} ${metric.unit}`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#6b7794', font: { family: "'DM Sans', sans-serif", size: 12 }, maxRotation: 45 },
+            grid: { color: '#eef1f8' },
+            border: { color: '#dde2ef' }
+          },
+          y: {
+            ticks: {
+              color: '#6b7794',
+              font: { family: "'DM Sans', sans-serif", size: 12 },
+              callback: v => {
+                if (isCount) return v >= 1000 ? (v/1000).toFixed(0)+'k' : v;
+                if (metric.unit === '%') return v+'%';
+                return v;
+              }
+            },
+            grid: { color: '#eef1f8' },
+            border: { color: '#dde2ef' },
+            ...(metric.pct ? { min: 0, max: 100 } : (metric.key === 'n' ? { min: 0, max: 350000 } : {}))
+          }
+        }
+      }
+    });
+  });
+}
+
+init();
+</script>
+</body>
+</html>
